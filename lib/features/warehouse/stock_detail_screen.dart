@@ -3,6 +3,8 @@ import 'package:oksigen24medis_mobile2/core/theme/app_theme.dart';
 import 'package:oksigen24medis_mobile2/core/services/api_service.dart';
 import 'package:provider/provider.dart';
 import 'package:oksigen24medis_mobile2/core/state/warehouse_provider.dart';
+import 'package:oksigen24medis_mobile2/features/refill/refill_form_screen.dart';
+import 'package:oksigen24medis_mobile2/features/rental/rental_form_screen.dart';
 import 'dart:ui' as ui;
 import 'package:flutter/rendering.dart';
 import 'dart:typed_data';
@@ -133,11 +135,11 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
         final matchingCylinders = allCylinders.where((c) {
           if (widget.sku.contains('RNT-ACC') || widget.sku.contains('ACC')) {
             final otName = c['oxygenType']?['name'] ?? 'Aksesoris Sewa';
-            return otName == widget.title;
+            return otName.toLowerCase() == widget.title.toLowerCase();
           } else {
             final otName = c['oxygenType']?['name'] ?? 'Oksigen Medis';
             final size = c['size'] ?? '1m3';
-            return '$otName $size' == widget.title;
+            return '$otName ($size)'.toLowerCase() == widget.title.toLowerCase();
           }
         }).toList();
 
@@ -446,20 +448,12 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
     final isAccessory = widget.sku.contains('RNT-ACC') || widget.sku.contains('ACC');
     final secondButtonLabel = isAccessory ? 'Sewa Baru' : 'Isi Ulang';
     final secondButtonIcon = isAccessory ? Icons.assignment_turned_in_rounded : Icons.local_gas_station_rounded;
-    final secondButtonSnackbar = isAccessory ? 'Membuka form sewa...' : 'Membuka form isi ulang...';
 
     return Row(
       children: [
         Expanded(
           child: OutlinedButton.icon(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Membuka form ubah status...'),
-                  backgroundColor: AppColors.primary,
-                ),
-              );
-            },
+            onPressed: () => _showChangeStatusDialog(null),
             icon: const Icon(Icons.sync_alt, size: 20),
             label: const Text(
               'Ubah Status',
@@ -479,10 +473,9 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
         Expanded(
           child: ElevatedButton.icon(
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(secondButtonSnackbar),
-                  backgroundColor: AppColors.primary,
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => isAccessory ? const RentalFormScreen() : const RefillFormScreen(),
                 ),
               );
             },
@@ -502,6 +495,171 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Future<void> _updateCylinderStatus(String cylinderId, String newStatus) async {
+    setState(() => _isLoadingMovements = true);
+    try {
+      final api = ApiService();
+      await api.dio.patch('/inventory/cylinders/$cylinderId', data: {
+        'status': newStatus,
+      });
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Berhasil mengubah status menjadi $newStatus'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+
+      // Refresh inventory
+      await Provider.of<WarehouseProvider>(context, listen: false).fetchInventory(silent: true);
+      // Refresh movements
+      await _fetchMovements();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal mengubah status: ${e.toString()}'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingMovements = false);
+      }
+    }
+  }
+
+  void _showChangeStatusDialog(String? initialSerial) {
+    final provider = Provider.of<WarehouseProvider>(context, listen: false);
+    final allCylinders = widget.sku.contains('RNT-ACC') || widget.sku.contains('ACC')
+        ? provider.rentableAccessories
+        : provider.actualCylinders;
+
+    final matchingCylinders = allCylinders.where((c) {
+      if (widget.sku.contains('RNT-ACC') || widget.sku.contains('ACC')) {
+        final otName = c['oxygenType']?['name'] ?? 'Aksesoris Sewa';
+        return otName.toLowerCase() == widget.title.toLowerCase();
+      } else {
+        final otName = c['oxygenType']?['name'] ?? 'Oksigen Medis';
+        final size = c['size'] ?? '1m3';
+        return '$otName ($size)'.toLowerCase() == widget.title.toLowerCase();
+      }
+    }).toList();
+
+    if (matchingCylinders.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Tidak ada unit aset tersedia untuk diubah statusnya'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    String? selectedSerial = initialSerial ?? (matchingCylinders.isNotEmpty ? matchingCylinders.first['serialNumber']?.toString() : null);
+    String? selectedStatus;
+
+    if (selectedSerial != null) {
+      final cyl = matchingCylinders.firstWhere((c) => c['serialNumber']?.toString() == selectedSerial, orElse: () => null);
+      if (cyl != null) {
+        selectedStatus = cyl['status']?.toString();
+      }
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              title: Text(
+                'Ubah Status Unit Aset',
+                style: AppTextStyles.h3.copyWith(fontWeight: FontWeight.bold),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Pilih Serial Number:', style: TextStyle(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    value: selectedSerial,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                    items: matchingCylinders.map<DropdownMenuItem<String>>((c) {
+                      final s = c['serialNumber']?.toString() ?? '';
+                      return DropdownMenuItem<String>(
+                        value: s,
+                        child: Text('S/N: $s'),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      setModalState(() {
+                        selectedSerial = val;
+                        final cyl = matchingCylinders.firstWhere((c) => c['serialNumber']?.toString() == val, orElse: () => null);
+                        if (cyl != null) {
+                          selectedStatus = cyl['status']?.toString();
+                        }
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('Pilih Status Baru:', style: TextStyle(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    value: selectedStatus,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'AVAILABLE', child: Text('Tersedia (AVAILABLE)')),
+                      DropdownMenuItem(value: 'EMPTY', child: Text('Kosong (EMPTY)')),
+                      DropdownMenuItem(value: 'MAINTENANCE', child: Text('Maintenance (MAINTENANCE)')),
+                      DropdownMenuItem(value: 'AT_VENDOR', child: Text('Di Vendor (AT_VENDOR)')),
+                      DropdownMenuItem(value: 'RENTED', child: Text('Disewa (RENTED)')),
+                    ],
+                    onChanged: (val) {
+                      setModalState(() {
+                        selectedStatus = val;
+                      });
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Batal'),
+                ),
+                ElevatedButton(
+                  onPressed: (selectedSerial != null && selectedStatus != null)
+                      ? () {
+                          Navigator.pop(context);
+                          final cyl = matchingCylinders.firstWhere((c) => c['serialNumber']?.toString() == selectedSerial, orElse: () => null);
+                          if (cyl != null) {
+                            _updateCylinderStatus(cyl['id'], selectedStatus!);
+                          }
+                        }
+                      : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Simpan'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
@@ -787,7 +945,13 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                     style: AppTextStyles.caption.copyWith(color: statusColor, fontWeight: FontWeight.bold),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 4),
+                IconButton(
+                  icon: const Icon(Icons.edit_note_rounded, color: AppColors.primary, size: 20),
+                  tooltip: 'Ubah Status',
+                  onPressed: () => _showChangeStatusDialog(sNum),
+                ),
+                const SizedBox(width: 4),
                 IconButton(
                   icon: const Icon(Icons.qr_code_2_rounded, color: AppColors.primary, size: 20),
                   onPressed: () => _showQRDialog(sNum, 'Serial Number: $sNum'),
