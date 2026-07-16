@@ -67,6 +67,8 @@ flutter:
     - assets/images/logo.png
     - assets/images/kontrak_sewa.png
     - assets/images/isi_ulang.png
+    - assets/images/penjualan.png
+    - assets/images/pengembalian.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

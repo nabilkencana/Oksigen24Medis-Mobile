@@ -791,10 +791,10 @@ class _QuickActionButton extends StatelessWidget {
             children: [
               // Icon circle — primary-container/10
               Container(
-                width: (data.label == 'Kontrak Sewa' || data.label == 'Isi Ulang') ? 80 : 56,
-                height: (data.label == 'Kontrak Sewa' || data.label == 'Isi Ulang') ? 80 : 56,
+                width: (data.label == 'Kontrak Sewa' || data.label == 'Isi Ulang' || data.label == 'Penjualan' || data.label == 'Pengembalian') ? 80 : 56,
+                height: (data.label == 'Kontrak Sewa' || data.label == 'Isi Ulang' || data.label == 'Penjualan' || data.label == 'Pengembalian') ? 80 : 56,
                 decoration: BoxDecoration(
-                  color: (data.label == 'Kontrak Sewa' || data.label == 'Isi Ulang') ? Colors.transparent : AppColors.primary.withAlpha(26), // /10 opacity
+                  color: (data.label == 'Kontrak Sewa' || data.label == 'Isi Ulang' || data.label == 'Penjualan' || data.label == 'Pengembalian') ? Colors.transparent : AppColors.primary.withAlpha(26), // /10 opacity
                   shape: BoxShape.circle,
                 ),
                 child: data.label == 'Kontrak Sewa'
@@ -815,7 +815,25 @@ class _QuickActionButton extends StatelessWidget {
                               fit: BoxFit.contain,
                             ),
                           )
-                        : Icon(data.icon, color: AppColors.primary, size: 28),
+                        : data.label == 'Penjualan'
+                            ? Center(
+                                child: Image.asset(
+                                  'assets/images/penjualan.png',
+                                  width: 80,
+                                  height: 80,
+                                  fit: BoxFit.contain,
+                                ),
+                              )
+                            : data.label == 'Pengembalian'
+                                ? Center(
+                                    child: Image.asset(
+                                      'assets/images/pengembalian.png',
+                                      width: 80,
+                                      height: 80,
+                                      fit: BoxFit.contain,
+                                    ),
+                                  )
+                                : Icon(data.icon, color: AppColors.primary, size: 28),
               ),
               const SizedBox(height: 10),
               Text(
