@@ -24,7 +24,11 @@ class PdfService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final shopName = prefs.getString('receipt_shop_name') ?? 'OKSIGEN MEDIS 24 JAM';
-      final shopAddress = prefs.getString('receipt_shop_address') ?? 'Dusun Sembon, Sembon, Kec. Karangrejo\nKabupaten Tulungagung, Jawa Timur 66253';
+      final shopAddress = prefs.getString('receipt_shop_address') ?? 'Dusun Sembon, Sembon, Kec. Karangrejo\nKabupaten Tulungagung, Jawa Timur 66253\nTelp: 085866972209 / 085733930575';
+      String finalShopAddress = shopAddress;
+      if (!shopAddress.contains('085866972209') && !shopAddress.contains('085733930575')) {
+        finalShopAddress = '$shopAddress\nTelp: 085866972209 / 085733930575';
+      }
       final footer = prefs.getString('receipt_footer') ?? 'Terima Kasih atas Kepercayaan Anda!';
       final showLogo = prefs.getBool('receipt_show_logo') ?? true;
 
@@ -73,7 +77,7 @@ class PdfService {
                             ),
                           pw.SizedBox(height: 8),
                           pw.Text(
-                            shopAddress,
+                            finalShopAddress,
                             style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700),
                           ),
                         ],

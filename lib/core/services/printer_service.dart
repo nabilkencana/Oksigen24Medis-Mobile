@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 import 'package:oksigen24medis_mobile2/features/payment/receipt_item.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class PrinterService {
   static final PrinterService _instance = PrinterService._internal();
@@ -11,6 +12,14 @@ class PrinterService {
   // Get list of paired bluetooth devices
   Future<List<BluetoothInfo>> getBluetoothDevices() async {
     try {
+      // Request Bluetooth and Location permissions at runtime
+      await [
+        Permission.bluetooth,
+        Permission.bluetoothConnect,
+        Permission.bluetoothScan,
+        Permission.location,
+      ].request();
+
       final List<BluetoothInfo> devices = await PrintBluetoothThermal.pairedBluetooths;
       return devices;
     } catch (e) {
@@ -60,8 +69,12 @@ class PrinterService {
     // Load custom settings
     final prefs = await SharedPreferences.getInstance();
     final shopName = prefs.getString('receipt_shop_name') ?? 'OKSIGEN MEDIS 24 JAM';
-    final shopAddress = prefs.getString('receipt_shop_address') ?? 'Dusun Sembon, Sembon, Karangrejo\nTulungagung, Jawa Timur';
-    final shopAddressLines = shopAddress.split('\n');
+    final shopAddress = prefs.getString('receipt_shop_address') ?? 'Dusun Sembon, Sembon, Karangrejo\nTulungagung, Jawa Timur\nTelp: 085866972209 / 085733930575';
+    final List<String> shopAddressLines = shopAddress.split('\n');
+    final hasPhone = shopAddressLines.any((line) => line.contains('085866972209') || line.contains('085733930575'));
+    if (!hasPhone) {
+      shopAddressLines.add('Telp: 085866972209 / 085733930575');
+    }
     final footer = prefs.getString('receipt_footer') ?? 'Terima Kasih atas\nKepercayaan Anda';
     final footerLines = footer.split('\n');
 

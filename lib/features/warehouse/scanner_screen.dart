@@ -52,10 +52,17 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
 
     final provider = Provider.of<WarehouseProvider>(context, listen: false);
 
+    // Normalize code (trim, remove "SKU: " prefix if present)
+    String cleanCode = code.trim();
+    if (cleanCode.toLowerCase().startsWith('sku:')) {
+      cleanCode = cleanCode.substring(4).trim();
+    }
+    final searchCodeLower = cleanCode.toLowerCase();
+
     // 1. Search in products (by SKU or name)
     final prod = provider.products.firstWhere(
-      (p) => p['sku']?.toString().toLowerCase() == code.trim().toLowerCase() ||
-             p['name']?.toString().toLowerCase() == code.trim().toLowerCase(),
+      (p) => p['sku']?.toString().toLowerCase() == searchCodeLower ||
+             p['name']?.toString().toLowerCase() == searchCodeLower,
       orElse: () => null,
     );
 
@@ -86,7 +93,7 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
 
     // 2. Search in cylinders (by Serial Number)
     final cyl = provider.cylinders.firstWhere(
-      (c) => c['serialNumber']?.toString().toLowerCase() == code.trim().toLowerCase(),
+      (c) => c['serialNumber']?.toString().toLowerCase() == searchCodeLower,
       orElse: () => null,
     );
 
@@ -157,6 +164,91 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
         ),
       );
       return;
+    }
+
+    // 3. Search cylinders group by SKU (e.g. CYL-1m3)
+    if (searchCodeLower.startsWith('cyl-')) {
+      final size = cleanCode.substring(4);
+      final list = provider.actualCylinders.where((c) {
+        final cSize = c['size'] ?? '1m3';
+        return cSize.toString().toLowerCase() == size.toLowerCase();
+      }).toList();
+
+      if (list.isNotEmpty) {
+        final otName = list.first['oxygenType']?['name'] ?? 'Oksigen Medis';
+        final title = '$otName ($size)';
+        final sku = 'SKU: ${cleanCode.toUpperCase()}';
+
+        final total = list.length;
+        final tersedia = list.where((i) => i['status'] == 'AVAILABLE').length;
+        final kosong = list.where((i) => i['status'] == 'EMPTY').length;
+        final disewa = list.where((i) => i['status'] == 'RENTED').length;
+        final vendor = list.where((i) => i['status'] == 'AT_VENDOR').length;
+        final maintenance = list.where((i) => i['status'] == 'MAINTENANCE').length;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Scan Berhasil: $title'),
+            backgroundColor: const Color(0xFF00A67E),
+          ),
+        );
+
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => StockDetailScreen(
+              title: title,
+              sku: sku,
+              total: total,
+              tersedia: tersedia,
+              kosong: kosong,
+              disewa: disewa,
+              vendor: vendor,
+              maintenance: maintenance,
+              isProduct: false,
+            ),
+          ),
+        );
+        return;
+      }
+    }
+
+    // 4. Search rentable accessories group by SKU (e.g. RNT-ACC)
+    if (searchCodeLower == 'rnt-acc') {
+      final list = provider.rentableAccessories;
+      if (list.isNotEmpty) {
+        final otName = list.first['oxygenType']?['name'] ?? 'Aksesoris Sewa';
+        final title = otName;
+        final sku = 'SKU: RNT-ACC';
+
+        final total = list.length;
+        final tersedia = list.where((i) => i['status'] == 'AVAILABLE').length;
+        final disewa = list.where((i) => i['status'] == 'RENTED').length;
+        final maintenance = list.where((i) => i['status'] == 'MAINTENANCE').length;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Scan Berhasil: $title'),
+            backgroundColor: const Color(0xFF00A67E),
+          ),
+        );
+
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => StockDetailScreen(
+              title: title,
+              sku: sku,
+              total: total,
+              tersedia: tersedia,
+              kosong: 0,
+              disewa: disewa,
+              vendor: 0,
+              maintenance: maintenance,
+              isProduct: false,
+            ),
+          ),
+        );
+        return;
+      }
     }
 
     // If not found

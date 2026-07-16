@@ -1295,7 +1295,7 @@ class _ShopInfoBottomSheetState extends State<_ShopInfoBottomSheet> {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _nameController.text = prefs.getString('receipt_shop_name') ?? 'OKSIGEN MEDIS 24 JAM';
-      _addressController.text = prefs.getString('receipt_shop_address') ?? 'Dusun Sembon, Sembon, Karangrejo\nTulungagung, Jawa Timur';
+      _addressController.text = prefs.getString('receipt_shop_address') ?? 'Dusun Sembon, Sembon, Karangrejo\nTulungagung, Jawa Timur\nTelp: 085866972209 / 085733930575';
       _phoneController.text = prefs.getString('receipt_shop_phone') ?? '08123456789';
       _isLoading = false;
     });
@@ -1470,7 +1470,7 @@ class _ReceiptSettingsBottomSheetState extends State<_ReceiptSettingsBottomSheet
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _nameController.text = prefs.getString('receipt_shop_name') ?? 'OKSIGEN MEDIS 24 JAM';
-      _addressController.text = prefs.getString('receipt_shop_address') ?? 'Dusun Sembon, Sembon, Karangrejo\nTulungagung, Jawa Timur';
+      _addressController.text = prefs.getString('receipt_shop_address') ?? 'Dusun Sembon, Sembon, Karangrejo\nTulungagung, Jawa Timur\nTelp: 085866972209 / 085733930575';
       _footerController.text = prefs.getString('receipt_footer') ?? 'Terima Kasih atas\nKepercayaan Anda';
       _showLogo = prefs.getBool('receipt_show_logo') ?? true;
       _isLoading = false;
