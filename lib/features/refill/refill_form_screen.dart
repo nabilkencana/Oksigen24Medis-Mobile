@@ -5,6 +5,9 @@ import 'package:oksigen24medis_mobile2/core/state/warehouse_provider.dart';
 import 'package:oksigen24medis_mobile2/features/payment/payment_screen.dart';
 import 'package:oksigen24medis_mobile2/features/payment/receipt_item.dart';
 import 'package:provider/provider.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:oksigen24medis_mobile2/features/warehouse/transaction_scanner_screen.dart';
 
 class RefillFormScreen extends StatefulWidget {
   const RefillFormScreen({super.key});
@@ -98,6 +101,12 @@ class _RefillFormScreenState extends State<RefillFormScreen> {
           'Isi Ulang Oksigen',
           style: AppTextStyles.h3.copyWith(fontWeight: FontWeight.w600),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.qr_code_scanner_rounded, color: AppColors.primary),
+            onPressed: () => _openScanner(context, warehouseProvider),
+          ),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(0.5),
           child: Container(
@@ -1116,6 +1125,123 @@ class _RefillFormScreenState extends State<RefillFormScreen> {
           },
         );
       },
+    );
+  }
+
+  bool _isAccessoryAsset(String serial, String size) {
+    final s = serial.toUpperCase();
+    final sz = size.toUpperCase();
+    return s.startsWith('REG-') || s.startsWith('TRL-') || s.startsWith('ACC-') || sz == 'PCS';
+  }
+
+  Future<void> _openScanner(BuildContext context, WarehouseProvider provider) async {
+    final status = await Permission.camera.request();
+    if (status.isGranted) {
+      if (!context.mounted) return;
+      final String? code = await Navigator.of(context).push<String>(
+        MaterialPageRoute(
+          builder: (context) => const TransactionScannerScreen(),
+        ),
+      );
+      if (code != null) {
+        _onBarcodeScanned(code, provider);
+      }
+    } else {
+      _showErrorSnackBar('Izin kamera dibutuhkan untuk scan barcode!');
+    }
+  }
+
+  void _onBarcodeScanned(String code, WarehouseProvider provider) {
+    String cleanCode = code.trim();
+    if (cleanCode.toLowerCase().startsWith('sku:')) {
+      cleanCode = cleanCode.substring(4).trim();
+    }
+    final cleanCodeLower = cleanCode.toLowerCase();
+
+    // 1. Check if it's a product (sale-only)
+    final prod = provider.products.firstWhere(
+      (p) => p['sku']?.toString().toLowerCase() == cleanCodeLower ||
+             p['name']?.toString().toLowerCase() == cleanCodeLower,
+      orElse: () => null,
+    );
+    if (prod != null) {
+      _showErrorSnackBar('Item ini tidak dapat diisi ulang! Hanya tabung oksigen yang bisa diisi ulang.');
+      return;
+    }
+
+    // 2. Check if it's a cylinder or accessory (in provider.cylinders)
+    final cyl = provider.cylinders.firstWhere(
+      (c) => c['serialNumber']?.toString().toLowerCase() == cleanCodeLower,
+      orElse: () => null,
+    );
+
+    if (cyl != null) {
+      final isAcc = _isAccessoryAsset(cyl['serialNumber']?.toString() ?? '', cyl['size']?.toString() ?? '');
+      if (isAcc) {
+        _showErrorSnackBar('Aksesoris sewa tidak dapat diisi ulang! Hanya tabung oksigen yang bisa diisi ulang.');
+        return;
+      }
+
+      // Rentable cylinder
+      final size = cyl['size']?.toString() ?? '1m3';
+      if (_cylinderQty.containsKey(size)) {
+        final int stock = provider.actualCylinders.where((c) => (c['size'] ?? '1m3') == size && c['status'] == 'AVAILABLE').length;
+        final int currentQty = _cylinderQty[size] ?? 0;
+        if (currentQty >= stock) {
+          _showErrorSnackBar('Stok isi ulang untuk tabung $size sudah mencapai batas maksimum!');
+        } else {
+          setState(() {
+            _cylinderQty[size] = currentQty + 1;
+          });
+          _updateSuggestedPrices();
+          _showSuccessSnackBar('Berhasil menambahkan isi ulang: Tabung Oksigen $size');
+        }
+      } else {
+        _showErrorSnackBar('Tabung dengan ukuran $size tidak ditemukan di form!');
+      }
+      return;
+    }
+
+    // 3. Check if it's a cylinder group SKU (starts with 'cyl-')
+    if (cleanCodeLower.startsWith('cyl-')) {
+      final size = cleanCode.substring(4);
+      if (_cylinderQty.containsKey(size)) {
+        final int stock = provider.actualCylinders.where((c) => (c['size'] ?? '1m3') == size && c['status'] == 'AVAILABLE').length;
+        final int currentQty = _cylinderQty[size] ?? 0;
+        if (currentQty >= stock) {
+          _showErrorSnackBar('Stok isi ulang untuk tabung $size sudah mencapai batas maksimum!');
+        } else {
+          setState(() {
+            _cylinderQty[size] = currentQty + 1;
+          });
+          _updateSuggestedPrices();
+          _showSuccessSnackBar('Berhasil menambahkan isi ulang: Tabung Oksigen $size');
+        }
+      } else {
+        _showErrorSnackBar('Tabung dengan ukuran $size tidak ditemukan di form!');
+      }
+      return;
+    }
+
+    // 4. If accessory SKU is scanned
+    if (cleanCodeLower == 'rnt-acc') {
+      _showErrorSnackBar('Aksesoris sewa tidak dapat diisi ulang! Hanya tabung oksigen yang bisa diisi ulang.');
+      return;
+    }
+
+    // 5. Not found
+    _showErrorSnackBar('Barcode/QR tidak terdaftar di sistem!');
+  }
+
+  void _showErrorSnackBar(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: const Color(0xFFEF4444)),
+    );
+  }
+
+  void _showSuccessSnackBar(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: const Color(0xFF00A67E)),
     );
   }
 }

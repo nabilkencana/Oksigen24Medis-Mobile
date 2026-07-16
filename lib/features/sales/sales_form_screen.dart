@@ -5,6 +5,9 @@ import 'package:oksigen24medis_mobile2/core/state/warehouse_provider.dart';
 import 'package:oksigen24medis_mobile2/features/payment/payment_screen.dart';
 import 'package:oksigen24medis_mobile2/features/payment/receipt_item.dart';
 import 'package:provider/provider.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:oksigen24medis_mobile2/features/warehouse/transaction_scanner_screen.dart';
 
 class SalesFormScreen extends StatefulWidget {
   const SalesFormScreen({super.key});
@@ -98,6 +101,10 @@ class _SalesFormScreenState extends State<SalesFormScreen> {
           style: AppTextStyles.h3.copyWith(fontWeight: FontWeight.w600),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.qr_code_scanner_rounded, color: AppColors.primary),
+            onPressed: () => _openScanner(context, warehouseProvider),
+          ),
           IconButton(
             icon: const Icon(Icons.more_vert, color: AppColors.textPrimary),
             onPressed: () {},
@@ -1088,6 +1095,82 @@ class _SalesFormScreenState extends State<SalesFormScreen> {
           },
         );
       },
+    );
+  }
+
+  Future<void> _openScanner(BuildContext context, WarehouseProvider provider) async {
+    final status = await Permission.camera.request();
+    if (status.isGranted) {
+      if (!context.mounted) return;
+      final String? code = await Navigator.of(context).push<String>(
+        MaterialPageRoute(
+          builder: (context) => const TransactionScannerScreen(),
+        ),
+      );
+      if (code != null) {
+        _onBarcodeScanned(code, provider);
+      }
+    } else {
+      _showErrorSnackBar('Izin kamera dibutuhkan untuk scan barcode!');
+    }
+  }
+
+  void _onBarcodeScanned(String code, WarehouseProvider provider) {
+    String cleanCode = code.trim();
+    if (cleanCode.toLowerCase().startsWith('sku:')) {
+      cleanCode = cleanCode.substring(4).trim();
+    }
+    final cleanCodeLower = cleanCode.toLowerCase();
+
+    // 1. Check if it's a product for sale (in provider.products)
+    final prod = provider.products.firstWhere(
+      (p) => p['sku']?.toString().toLowerCase() == cleanCodeLower ||
+             p['name']?.toString().toLowerCase() == cleanCodeLower,
+      orElse: () => null,
+    );
+
+    if (prod != null) {
+      final String id = prod['id'].toString();
+      final int stock = prod['currentStock'] ?? 0;
+      final int currentQty = _selectedQuantities[id] ?? 0;
+
+      if (currentQty >= stock) {
+        _showErrorSnackBar('Stok produk ${prod['name']} sudah mencapai batas maksimum!');
+      } else {
+        setState(() {
+          _selectedQuantities[id] = currentQty + 1;
+        });
+        _updateSuggestedPrices(provider.products);
+        _showSuccessSnackBar('Berhasil menambahkan ${prod['name']}');
+      }
+      return;
+    }
+
+    // 2. Check if it's a cylinder (in provider.cylinders)
+    final cyl = provider.cylinders.firstWhere(
+      (c) => c['serialNumber']?.toString().toLowerCase() == cleanCodeLower,
+      orElse: () => null,
+    );
+    final isCylSku = cleanCodeLower.startsWith('cyl-') || cleanCodeLower == 'rnt-acc';
+
+    if (cyl != null || isCylSku) {
+      _showErrorSnackBar('Tabung/Aksesoris ini hanya untuk disewa atau diisi ulang, bukan untuk dijual!');
+      return;
+    }
+
+    // 3. Not found
+    _showErrorSnackBar('Barcode/QR tidak terdaftar di sistem!');
+  }
+
+  void _showErrorSnackBar(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: const Color(0xFFEF4444)),
+    );
+  }
+
+  void _showSuccessSnackBar(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: const Color(0xFF00A67E)),
     );
   }
 }
