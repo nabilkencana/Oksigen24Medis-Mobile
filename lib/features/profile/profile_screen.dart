@@ -598,7 +598,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             return Dialog(
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(24),
               ),
               clipBehavior: Clip.antiAlias,
               child: Container(
@@ -654,21 +654,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         if (isLoading) ...[
                           const Center(
                             child: Padding(
-                              padding: EdgeInsets.symmetric(vertical: 40.0),
+                              padding: EdgeInsets.symmetric(vertical: 36.0),
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  CircularProgressIndicator(
-                                    color: Color(0xFF0055FF),
-                                    strokeWidth: 3,
-                                  ),
-                                  SizedBox(height: 20),
+                                  _ScanningPulse(),
+                                  SizedBox(height: 24),
                                   Text(
                                     'Memindai printer Bluetooth...',
                                     style: TextStyle(
                                       color: AppColors.textSecondary,
                                       fontSize: 14,
-                                      fontWeight: FontWeight.w500,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    'Pastikan Bluetooth perangkat Anda aktif',
+                                    style: TextStyle(
+                                      color: AppColors.textSecondary,
+                                      fontSize: 12,
                                     ),
                                   ),
                                 ],
@@ -735,7 +740,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             child: ListView.separated(
                               shrinkWrap: true,
                               itemCount: devices.length,
-                              separatorBuilder: (context, index) => const SizedBox(height: 8),
+                              separatorBuilder: (context, index) => const SizedBox(height: 10),
                               itemBuilder: (context, index) {
                                 final d = devices[index];
                                 return InkWell(
@@ -761,54 +766,74 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       );
                                     }
                                   },
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(16),
                                   child: Container(
-                                    padding: const EdgeInsets.all(12),
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                                     decoration: BoxDecoration(
-                                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                                      borderRadius: BorderRadius.circular(12),
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+                                      boxShadow: const [
+                                        BoxShadow(
+                                          color: Color(0x02000000),
+                                          blurRadius: 6,
+                                          offset: Offset(0, 2),
+                                        ),
+                                      ],
                                     ),
                                     child: Row(
                                       children: [
                                         Container(
-                                          padding: const EdgeInsets.all(8),
+                                          padding: const EdgeInsets.all(10),
                                           decoration: BoxDecoration(
-                                            color: const Color(0xFFF1F5F9),
-                                            borderRadius: BorderRadius.circular(8),
+                                            color: const Color(0xFFE6EEFF),
+                                            borderRadius: BorderRadius.circular(12),
                                           ),
                                           child: const Icon(
-                                            Icons.bluetooth_connected_rounded,
+                                            Icons.print_rounded,
                                             color: Color(0xFF0055FF),
                                             size: 20,
                                           ),
                                         ),
-                                        const SizedBox(width: 12),
+                                        const SizedBox(width: 14),
                                         Expanded(
                                           child: Column(
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
                                               Text(
-                                                d.name,
+                                                d.name.isNotEmpty ? d.name : 'Printer Tanpa Nama',
                                                 style: const TextStyle(
                                                   fontWeight: FontWeight.bold,
                                                   color: AppColors.textPrimary,
                                                   fontSize: 14,
                                                 ),
                                               ),
-                                              const SizedBox(height: 2),
+                                              const SizedBox(height: 4),
                                               Text(
                                                 d.macAdress,
                                                 style: const TextStyle(
                                                   color: AppColors.textSecondary,
                                                   fontSize: 11,
+                                                  fontFamily: 'monospace',
                                                 ),
                                               ),
                                             ],
                                           ),
                                         ),
-                                        const Icon(
-                                          Icons.chevron_right_rounded,
-                                          color: AppColors.textSecondary,
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFE6EEFF),
+                                            borderRadius: BorderRadius.circular(20),
+                                          ),
+                                          child: const Text(
+                                            'Pilih',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                              color: Color(0xFF0055FF),
+                                            ),
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -1634,3 +1659,84 @@ class _ReceiptSettingsBottomSheetState extends State<_ReceiptSettingsBottomSheet
     );
   }
 }
+
+// ── PULSING SEARCH ANIMATION FOR BLUETOOTH DIALOG ─────────────────────────────
+class _ScanningPulse extends StatefulWidget {
+  const _ScanningPulse();
+
+  @override
+  State<_ScanningPulse> createState() => _ScanningPulseState();
+}
+
+class _ScanningPulseState extends State<_ScanningPulse>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            // Outer pulse circle
+            Container(
+              width: 80 * _controller.value,
+              height: 80 * _controller.value,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF0055FF).withOpacity(0.2 * (1.0 - _controller.value)),
+              ),
+            ),
+            // Middle pulse circle
+            Container(
+              width: 60 * _controller.value,
+              height: 60 * _controller.value,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF0055FF).withOpacity(0.4 * (1.0 - _controller.value)),
+              ),
+            ),
+            // Glowing center icon
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: const BoxDecoration(
+                color: Color(0xFF0055FF),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0x330055FF),
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.bluetooth_searching_rounded,
+                color: Colors.white,
+                size: 28,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+

@@ -66,7 +66,7 @@ class PrinterService {
       // Resize the logo to fit width (160 pixels is a perfect fit for 58mm thermal printers)
       final img.Image resized = img.copyResize(
         originalImage,
-        width: 160,
+        width: 260,
         interpolation: img.Interpolation.nearest,
       );
 
