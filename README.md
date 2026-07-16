@@ -94,7 +94,7 @@ sequenceDiagram
     App->>API: POST /transactions/(rentals|sales|refills|returns)
     API-->>App: Respon sukses (Invoice No & Rincian)
     API-->>WS: Trigger event db_change
-    WS--.>>App: Broadcast event 'db_change' (Update UI Stok Gudang otomatis)
+    WS-->>App: Broadcast event 'db_change' (Update UI Stok Gudang otomatis)
     
     alt Pembayaran Tunai & Cetak Struk
         App->>App: Hitung kembalian uang pelanggan
