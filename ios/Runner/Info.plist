@@ -6,6 +6,10 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Aplikasi memerlukan akses kamera untuk memindai barcode dan QR code tabung/barang.</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Aplikasi memerlukan akses Bluetooth untuk menghubungkan dan mencetak struk kasir menggunakan printer thermal.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>Aplikasi memerlukan akses Bluetooth untuk menghubungkan dan mencetak struk kasir menggunakan printer thermal.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>

@@ -30,6 +30,14 @@ class Oksigen24App extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: AppThemeData.lightTheme,
         home: const AuthGate(),
+        builder: (context, child) {
+          return GestureDetector(
+            onTap: () {
+              FocusManager.instance.primaryFocus?.unfocus();
+            },
+            child: child,
+          );
+        },
       ),
     );
   }

@@ -86,21 +86,23 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
         'createdAt': r['createdAt'] ?? r['startDate'] ?? DateTime.now().toIso8601String(),
         'type': 'Sewa Tabung',
         'status': r['status'] ?? 'RENTING',
-        'totalAmount': double.tryParse(r['totalAmount']?.toString() ?? '0') ?? 0.0,
+        'totalAmount': double.tryParse(r['amountPaid']?.toString() ?? r['totalAmount']?.toString() ?? '0') ?? 0.0,
         'original': r,
       });
     }
 
     // Map sales
     for (var s in provider.sales) {
+      final invoice = s['invoiceNo'] ?? 'INV-SALES';
+      final type = invoice.startsWith('RFL') ? 'Isi Ulang' : 'Penjualan';
       list.add({
         'id': s['id'],
-        'invoiceNo': s['invoiceNo'] ?? 'INV-SALES',
+        'invoiceNo': invoice,
         'customerName': s['customer']?['name'] ?? 'Jual Putus',
         'createdAt': s['createdAt'] ?? DateTime.now().toIso8601String(),
-        'type': 'Penjualan',
+        'type': type,
         'status': 'SELESAI', // immediate sale is complete
-        'totalAmount': double.tryParse(s['totalAmount']?.toString() ?? '0') ?? 0.0,
+        'totalAmount': double.tryParse(s['amountPaid']?.toString() ?? s['totalAmount']?.toString() ?? '0') ?? 0.0,
         'original': s,
       });
     }
@@ -414,10 +416,11 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                 ));
               }
             } else {
-              // Penjualan
+              // Penjualan or Isi Ulang
               final List<dynamic> items = original['items'] ?? [];
               for (var it in items) {
-                final prodName = it['product']?['name'] ?? 'Alat Medis';
+                final String defaultName = type == 'Isi Ulang' ? 'Refill Oksigen' : 'Alat Medis';
+                final prodName = it['product']?['name'] ?? defaultName;
                 detailItems.add(DetailItem(
                   name: prodName,
                   qty: it['quantity'] ?? 1,
@@ -445,6 +448,16 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
               }
             }
 
+            int rentalCost = 0;
+            if (type == 'Sewa Tabung') {
+              for (var it in detailItems) {
+                rentalCost += it.unitPrice * it.qty;
+              }
+            }
+            final int calculatedDeposit = type == 'Sewa Tabung'
+                ? (tx['totalAmount'].round() - rentalCost).clamp(0, 999999999)
+                : 0;
+
             Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (context) => TransactionDetailScreen(
@@ -454,7 +467,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                   dateStr: dateStr,
                   status: status,
                   totalTagihan: tx['totalAmount'].round(),
-                  deposit: type == 'Sewa Tabung' ? 200000 : 0,
+                  deposit: calculatedDeposit,
                   sewaDays: sewaDaysVal,
                   returnDeadline: type == 'Sewa Tabung' ? original['dueDate']?.toString().substring(0, 10) ?? '-' : '-',
                   items: detailItems,

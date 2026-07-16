@@ -455,6 +455,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           TextFormField(
             controller: _receivedController,
             keyboardType: TextInputType.number,
+            textInputAction: TextInputAction.done,
             style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.w700, fontSize: 18),
             inputFormatters: [CurrencyInputFormatter()],
             decoration: InputDecoration(
