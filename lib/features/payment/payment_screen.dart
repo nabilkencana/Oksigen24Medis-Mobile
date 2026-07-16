@@ -18,8 +18,9 @@ class PaymentScreen extends StatefulWidget {
   final List<ReceiptItem>? receiptItems;
 
   // dynamic integration properties
-  final String type; // 'RENTAL', 'SALE', 'REFILL'
+  final String type; // 'RENTAL', 'SALE', 'REFILL', 'EXTENSION'
   final String? customerId;
+  final String? rentalId;
   final DateTime? dueDate;
   final List<String>? cylinderIds;
   final List<Map<String, dynamic>>? items;
@@ -35,6 +36,7 @@ class PaymentScreen extends StatefulWidget {
     this.receiptItems,
     this.type = 'RENTAL',
     this.customerId,
+    this.rentalId,
     this.dueDate,
     this.cylinderIds,
     this.items,
@@ -126,6 +128,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
           amountPaid: _selectedMethod == 'Tunai' ? _receivedAmount.toDouble() : widget.totalPrice.toDouble(),
           paymentMethod: _selectedMethod.toUpperCase(),
           items: widget.items ?? [],
+        );
+        if (result['invoiceNo'] != null) {
+          dynamicInvoiceNo = result['invoiceNo'];
+        }
+      } else if (widget.type == 'EXTENSION') {
+        // Submit Extension API
+        final result = await provider.extendRental(
+          rentalId: widget.rentalId ?? '',
+          newDueDate: widget.dueDate ?? DateTime.now(),
+          amountPaid: _selectedMethod == 'Tunai' ? _receivedAmount.toDouble() : widget.totalPrice.toDouble(),
         );
         if (result['invoiceNo'] != null) {
           dynamicInvoiceNo = result['invoiceNo'];

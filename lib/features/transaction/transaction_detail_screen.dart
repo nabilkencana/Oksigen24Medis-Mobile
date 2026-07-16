@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:oksigen24medis_mobile2/core/theme/app_theme.dart';
 import 'package:oksigen24medis_mobile2/features/return/return_form_screen.dart';
+import 'package:oksigen24medis_mobile2/features/rental/rental_extension_form_screen.dart';
 import 'package:oksigen24medis_mobile2/core/services/printer_service.dart';
 import 'package:oksigen24medis_mobile2/core/services/pdf_service.dart';
 import 'package:oksigen24medis_mobile2/features/payment/receipt_item.dart';
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 
 class TransactionDetailScreen extends StatelessWidget {
+  final String? rentalId;
   final String invoiceNo;
   final String customerName;
   final String customerType;
@@ -21,6 +23,7 @@ class TransactionDetailScreen extends StatelessWidget {
 
   const TransactionDetailScreen({
     super.key,
+    this.rentalId,
     this.invoiceNo = 'INV-20260714-01',
     this.customerName = 'RS. Medika Utama',
     this.customerType = 'Penyewaan Instansi',
@@ -502,105 +505,186 @@ class TransactionDetailScreen extends StatelessWidget {
       child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () async {
-                    final printer = PrinterService();
+          child: Builder(
+            builder: (context) {
+              final bool showThreeButtons = sewaDays > 0 && rawStatus != 'RETURNED' && rawStatus != 'SELESAI';
 
-                    Future<void> doPrint() async {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Mengirim data to printer...'),
-                          backgroundColor: AppColors.primary,
-                        ),
-                      );
-
-                      final receiptItems = items.map((e) => ReceiptItem(
-                        name: e.name,
-                        price: e.unitPrice,
-                        quantity: e.qty,
-                      )).toList();
-
-                      final success = await printer.printReceipt(
-                        invoiceNo: invoiceNo,
-                        customerName: customerName,
-                        cashierName: 'Kasir',
-                        receiptItems: receiptItems,
-                        paymentMethod: method,
-                        totalTagihan: totalTagihan,
-                        receivedAmount: totalTagihan, // assume exact payment for history print
-                        change: 0,
-                      );
-
-                      if (!context.mounted) return;
-
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(success ? 'Struk berhasil dicetak' : 'Gagal mencetak struk. Periksa status printer.'),
-                          backgroundColor: success ? AppColors.success : AppColors.error,
-                        ),
-                      );
-                    }
-
-                    final connected = await printer.isConnected();
-                    if (!context.mounted) return;
-
-                    if (!connected) {
-                      _showPrinterScanDialog(context, () {
-                        doPrint();
-                      });
-                    } else {
-                      await doPrint();
-                    }
-                  },
-                  icon: const Icon(Icons.print, size: 20),
-                  label: const Text(
-                    'Cetak Struk',
-                    style: TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.primary,
-                    side: const BorderSide(
-                      color: AppColors.primary,
-                      width: 1.5,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    minimumSize: const Size.fromHeight(48),
-                  ),
-                ),
-              ),
-              if (sewaDays > 0 && rawStatus != 'RETURNED' && rawStatus != 'SELESAI') ...[
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => const ReturnFormScreen(),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.assignment_return_outlined, size: 20),
-                    label: const Text(
-                      'Pengembalian',
-                      style: TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    style: ElevatedButton.styleFrom(
+              // Printer trigger helper
+              Future<void> triggerPrint() async {
+                final printer = PrinterService();
+                Future<void> doPrint() async {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Mengirim data to printer...'),
                       backgroundColor: AppColors.primary,
-                      foregroundColor: AppColors.surface,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                    ),
+                  );
+
+                  final receiptItems = items.map((e) => ReceiptItem(
+                    name: e.name,
+                    price: e.unitPrice,
+                    quantity: e.qty,
+                  )).toList();
+
+                  final success = await printer.printReceipt(
+                    invoiceNo: invoiceNo,
+                    customerName: customerName,
+                    cashierName: 'Kasir',
+                    receiptItems: receiptItems,
+                    paymentMethod: method,
+                    totalTagihan: totalTagihan,
+                    receivedAmount: totalTagihan,
+                    change: 0,
+                  );
+
+                  if (!context.mounted) return;
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(success ? 'Struk berhasil dicetak' : 'Gagal mencetak struk. Periksa status printer.'),
+                      backgroundColor: success ? AppColors.success : AppColors.error,
+                    ),
+                  );
+                }
+
+                final connected = await printer.isConnected();
+                if (!context.mounted) return;
+
+                if (!connected) {
+                  _showPrinterScanDialog(context, () {
+                    doPrint();
+                  });
+                } else {
+                  await doPrint();
+                }
+              }
+
+              if (showThreeButtons) {
+                return Row(
+                  children: [
+                    // 1. CETAK STRUK BUTTON (Vertical)
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: triggerPrint,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          side: const BorderSide(color: AppColors.primary, width: 1.5),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          minimumSize: const Size.fromHeight(60),
+                        ),
+                        child: const Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.print, size: 20),
+                            SizedBox(height: 4),
+                            Text(
+                              'Cetak Struk',
+                              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
                       ),
+                    ),
+                    const SizedBox(width: 8),
+                    // 2. PERPANJANG BUTTON (Vertical)
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => RentalExtensionFormScreen(
+                                rentalId: rentalId ?? '',
+                                invoiceNo: invoiceNo,
+                                customerName: customerName,
+                                returnDeadline: returnDeadline,
+                                items: items,
+                              ),
+                            ),
+                          );
+                        },
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          side: const BorderSide(color: AppColors.primary, width: 1.5),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          minimumSize: const Size.fromHeight(60),
+                        ),
+                        child: const Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.history_toggle_off_rounded, size: 20),
+                            SizedBox(height: 4),
+                            Text(
+                              'Perpanjang',
+                              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // 3. KEMBALI BUTTON (Vertical)
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const ReturnFormScreen(),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: AppColors.surface,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          minimumSize: const Size.fromHeight(60),
+                        ),
+                        child: const Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.assignment_return_outlined, size: 20),
+                            SizedBox(height: 4),
+                            Text(
+                              'Kembali',
+                              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              } else {
+                // Only 1 Button: Cetak Struk (Horizontal)
+                return SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: triggerPrint,
+                    icon: const Icon(Icons.print, size: 20),
+                    label: const Text(
+                      'Cetak Struk',
+                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      side: const BorderSide(color: AppColors.primary, width: 1.5),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       minimumSize: const Size.fromHeight(48),
                     ),
                   ),
-                ),
-              ],
-            ],
+                );
+              }
+            },
           ),
         ),
       ),

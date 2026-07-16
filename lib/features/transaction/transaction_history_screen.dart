@@ -428,16 +428,34 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
 
             final dateStr = tx['createdAt'].toString().substring(0, 16).replaceAll('T', ', ');
 
+            int sewaDaysVal = 0;
+            if (type == 'Sewa Tabung' && original != null) {
+              try {
+                final start = DateTime.parse(tx['createdAt']);
+                final due = DateTime.parse(original['dueDate']?.toString() ?? '');
+                sewaDaysVal = due.difference(start).inDays;
+                if (sewaDaysVal <= 0) {
+                  sewaDaysVal = (due.difference(start).inHours / 24).ceil();
+                }
+                if (sewaDaysVal <= 0) {
+                  sewaDaysVal = 7; // Fallback
+                }
+              } catch (_) {
+                sewaDaysVal = 7;
+              }
+            }
+
             Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (context) => TransactionDetailScreen(
+                  rentalId: type == 'Sewa Tabung' ? original['id']?.toString() : null,
                   invoiceNo: tx['invoiceNo'],
                   customerName: tx['customerName'],
                   dateStr: dateStr,
                   status: status,
                   totalTagihan: tx['totalAmount'].round(),
                   deposit: type == 'Sewa Tabung' ? 200000 : 0,
-                  sewaDays: type == 'Sewa Tabung' ? 7 : 0,
+                  sewaDays: sewaDaysVal,
                   returnDeadline: type == 'Sewa Tabung' ? original['dueDate']?.toString().substring(0, 10) ?? '-' : '-',
                   items: detailItems,
                 ),

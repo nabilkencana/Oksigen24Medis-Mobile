@@ -245,6 +245,37 @@ class TransactionProvider extends ChangeNotifier {
     }
   }
 
+  // Submit Extend Rental Transaction
+  Future<Map<String, dynamic>> extendRental({
+    required String rentalId,
+    required DateTime newDueDate,
+    required double amountPaid,
+  }) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final response = await _api.dio.post(
+        '/transactions/rentals/$rentalId/extend',
+        data: {
+          'dueDate': newDueDate.toUtc().toIso8601String(),
+          'amountPaid': amountPaid,
+        },
+      );
+      final data = _api.handleResponse(response);
+      await fetchTransactions(silent: true);
+      return data;
+    } catch (e) {
+      if (e is DioException) {
+        throw _api.handleDioError(e);
+      }
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   // Submit Refill Send to Vendor
   Future<Map<String, dynamic>> submitRefillSend({
     required String vendorId,
