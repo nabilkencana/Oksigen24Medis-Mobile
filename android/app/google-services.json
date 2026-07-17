@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "905545093547",
+    "project_id": "oksigen24medis-db0ec",
+    "storage_bucket": "oksigen24medis-db0ec.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:905545093547:android:c2219d6713fadfec5842ee",
+        "android_client_info": {
+          "package_name": "com.example.oksigen24medis_mobile2"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAA9rhzrtjJgwDJmeTccfDhcAlGcvAeEBQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

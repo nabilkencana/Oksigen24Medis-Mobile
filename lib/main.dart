@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:oksigen24medis_mobile2/core/theme/app_theme.dart';
 import 'package:oksigen24medis_mobile2/core/state/auth_provider.dart';
 import 'package:oksigen24medis_mobile2/core/state/dashboard_provider.dart';
@@ -12,8 +13,9 @@ import 'package:provider/provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Initialize local notification service early so the Android channel
-  // is registered before the first WebSocket event fires.
+  // Initialize Firebase (required before using FCM or any Firebase service)
+  await Firebase.initializeApp();
+  // Initialize local + FCM notification service
   await LocalNotificationService.instance.initialize();
   runApp(const Oksigen24App());
 }
