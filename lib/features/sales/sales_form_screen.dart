@@ -104,10 +104,6 @@ class _SalesFormScreenState extends State<SalesFormScreen> {
             icon: const Icon(Icons.qr_code_scanner_rounded, color: AppColors.primary),
             onPressed: () => _openScanner(context, warehouseProvider),
           ),
-          IconButton(
-            icon: const Icon(Icons.more_vert, color: AppColors.textPrimary),
-            onPressed: () {},
-          ),
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(0.5),

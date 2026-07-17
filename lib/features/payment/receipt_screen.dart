@@ -414,17 +414,21 @@ class ReceiptScreen extends StatelessWidget {
                   if (receiptItems != null && receiptItems!.isNotEmpty) {
                     itemsToPrint.addAll(receiptItems!);
                   } else {
-                    itemsToPrint.add(ReceiptItem(
-                      name: 'Sewa Tabung $selectedSize',
-                      price: tarif,
-                      quantity: quantity,
-                    ));
-                    if (deposit > 0) {
-                      itemsToPrint.add(ReceiptItem(
-                        name: 'Deposit Jaminan',
-                        price: deposit,
+                    itemsToPrint.add(
+                      ReceiptItem(
+                        name: 'Sewa Tabung $selectedSize',
+                        price: tarif,
                         quantity: quantity,
-                      ));
+                      ),
+                    );
+                    if (deposit > 0) {
+                      itemsToPrint.add(
+                        ReceiptItem(
+                          name: 'Deposit Jaminan',
+                          price: deposit,
+                          quantity: quantity,
+                        ),
+                      );
                     }
                   }
 
@@ -443,8 +447,14 @@ class ReceiptScreen extends StatelessWidget {
 
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(success ? 'Struk berhasil dicetak' : 'Gagal mencetak struk. Periksa status printer.'),
-                      backgroundColor: success ? AppColors.success : AppColors.error,
+                      content: Text(
+                        success
+                            ? 'Struk berhasil dicetak'
+                            : 'Gagal mencetak struk. Periksa status printer.',
+                      ),
+                      backgroundColor: success
+                          ? AppColors.success
+                          : AppColors.error,
                     ),
                   );
                 }
@@ -477,7 +487,7 @@ class ReceiptScreen extends StatelessWidget {
             OutlinedButton.icon(
               onPressed: () async {
                 final pdfService = PdfService();
-                
+
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Menyiapkan file PDF...'),
@@ -502,17 +512,21 @@ class ReceiptScreen extends StatelessWidget {
                 if (receiptItems != null && receiptItems!.isNotEmpty) {
                   itemsToPrint.addAll(receiptItems!);
                 } else {
-                  itemsToPrint.add(ReceiptItem(
-                    name: 'Sewa Tabung $selectedSize',
-                    price: tarif,
-                    quantity: quantity,
-                  ));
-                  if (deposit > 0) {
-                    itemsToPrint.add(ReceiptItem(
-                      name: 'Deposit Jaminan',
-                      price: deposit,
+                  itemsToPrint.add(
+                    ReceiptItem(
+                      name: 'Sewa Tabung $selectedSize',
+                      price: tarif,
                       quantity: quantity,
-                    ));
+                    ),
+                  );
+                  if (deposit > 0) {
+                    itemsToPrint.add(
+                      ReceiptItem(
+                        name: 'Deposit Jaminan',
+                        price: deposit,
+                        quantity: quantity,
+                      ),
+                    );
                   }
                 }
 
@@ -652,20 +666,38 @@ class ReceiptScreen extends StatelessWidget {
   }
 
   String _formatIndonesianDateTime(DateTime dt) {
-    const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-    const months = [
-      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    const days = [
+      'Minggu',
+      'Senin',
+      'Selasa',
+      'Rabu',
+      'Kamis',
+      'Jumat',
+      'Sabtu',
     ];
-    
+    const months = [
+      'Januari',
+      'Februari',
+      'Maret',
+      'April',
+      'Mei',
+      'Juni',
+      'Juli',
+      'Agustus',
+      'September',
+      'Oktober',
+      'November',
+      'Desember',
+    ];
+
     final dayName = days[dt.weekday % 7];
     final day = dt.day;
     final monthName = months[dt.month - 1];
     final year = dt.year;
-    
+
     final hour = dt.hour.toString().padLeft(2, '0');
     final minute = dt.minute.toString().padLeft(2, '0');
-    
+
     return '$dayName, $day $monthName $year • $hour:$minute WIB';
   }
 
@@ -689,9 +721,7 @@ class ReceiptScreen extends StatelessWidget {
                       children: [
                         CircularProgressIndicator(color: AppColors.primary),
                         SizedBox(width: 16),
-                        Expanded(
-                          child: Text('Sedang memindai perangkat...'),
-                        ),
+                        Expanded(child: Text('Sedang memindai perangkat...')),
                       ],
                     ),
                     actions: [
@@ -710,7 +740,9 @@ class ReceiptScreen extends StatelessWidget {
                   ),
                   title: const Text('Pilih Printer Bluetooth'),
                   content: devices.isEmpty
-                      ? const Text('Tidak ada perangkat printer bluetooth yang berpasangan. Hubungkan printer di pengaturan Bluetooth HP Anda terlebih dahulu.')
+                      ? const Text(
+                          'Tidak ada perangkat printer bluetooth yang berpasangan. Hubungkan printer di pengaturan Bluetooth HP Anda terlebih dahulu.',
+                        )
                       : SizedBox(
                           width: double.maxFinite,
                           child: ListView.builder(
@@ -719,25 +751,36 @@ class ReceiptScreen extends StatelessWidget {
                             itemBuilder: (context, index) {
                               final d = devices[index];
                               return ListTile(
-                                leading: const Icon(Icons.print, color: AppColors.primary),
+                                leading: const Icon(
+                                  Icons.print,
+                                  color: AppColors.primary,
+                                ),
                                 title: Text(d.name),
                                 subtitle: Text(d.macAdress),
                                 onTap: () async {
                                   Navigator.pop(context);
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: Text('Menghubungkan ke ${d.name}...'),
+                                      content: Text(
+                                        'Menghubungkan ke ${d.name}...',
+                                      ),
                                       backgroundColor: AppColors.primary,
                                     ),
                                   );
-                                  final success = await printer.connect(d.macAdress);
+                                  final success = await printer.connect(
+                                    d.macAdress,
+                                  );
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
-                                        content: Text(success 
-                                            ? 'Berhasil terhubung ke ${d.name}' 
-                                            : 'Gagal terhubung ke ${d.name}'),
-                                        backgroundColor: success ? AppColors.success : AppColors.error,
+                                        content: Text(
+                                          success
+                                              ? 'Berhasil terhubung ke ${d.name}'
+                                              : 'Gagal terhubung ke ${d.name}',
+                                        ),
+                                        backgroundColor: success
+                                            ? AppColors.success
+                                            : AppColors.error,
                                       ),
                                     );
                                     if (success) {

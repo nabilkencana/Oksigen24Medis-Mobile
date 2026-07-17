@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:oksigen24medis_mobile2/core/theme/app_theme.dart';
+import 'package:oksigen24medis_mobile2/core/services/api_service.dart';
 import 'package:oksigen24medis_mobile2/core/state/auth_provider.dart';
 import 'package:oksigen24medis_mobile2/core/state/warehouse_provider.dart';
 import 'package:oksigen24medis_mobile2/features/warehouse/stock_detail_screen.dart';
@@ -63,7 +64,9 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
       final kosong = items.where((i) => i['status'] == 'EMPTY').length;
       final disewa = items.where((i) => i['status'] == 'RENTED').length;
       final vendor = items.where((i) => i['status'] == 'AT_VENDOR').length;
-      final maintenance = items.where((i) => i['status'] == 'MAINTENANCE').length;
+      final maintenance = items
+          .where((i) => i['status'] == 'MAINTENANCE')
+          .length;
 
       return {
         'type': 'cylinder',
@@ -92,7 +95,9 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
       final items = e.value;
       final tersedia = items.where((i) => i['status'] == 'AVAILABLE').length;
       final disewa = items.where((i) => i['status'] == 'RENTED').length;
-      final maintenance = items.where((i) => i['status'] == 'MAINTENANCE').length;
+      final maintenance = items
+          .where((i) => i['status'] == 'MAINTENANCE')
+          .length;
 
       return {
         'type': 'rentable',
@@ -168,12 +173,13 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.qr_code_scanner, color: AppColors.textPrimary),
+            icon: const Icon(
+              Icons.qr_code_scanner,
+              color: AppColors.textPrimary,
+            ),
             onPressed: () {
               Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const ScannerScreen(),
-                ),
+                MaterialPageRoute(builder: (context) => const ScannerScreen()),
               );
             },
           ),
@@ -187,7 +193,9 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
         ),
       ),
       body: provider.isLoading && provider.cylinders.isEmpty
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            )
           : RefreshIndicator(
               onRefresh: () => provider.fetchInventory(),
               color: AppColors.primary,
@@ -211,7 +219,9 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
                               child: const Center(
                                 child: Text(
                                   'Barang tidak ditemukan',
-                                  style: TextStyle(color: AppColors.textSecondary),
+                                  style: TextStyle(
+                                    color: AppColors.textSecondary,
+                                  ),
                                 ),
                               ),
                             )
@@ -273,11 +283,7 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
         item['maintenance'],
       );
     } else {
-      return _buildSellableCard(
-        item['title'],
-        item['sku'],
-        item['tersedia'],
-      );
+      return _buildSellableCard(item['title'], item['sku'], item['tersedia']);
     }
   }
 
@@ -286,13 +292,20 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
     final tabungCount = provider.actualCylinders.length;
     final tersediaCount = provider.getCountByStatus('AVAILABLE');
     final kosongCount = provider.getCountByStatus('EMPTY');
-    final rusakCount = provider.getCountByStatus('MAINTENANCE') + provider.getCountByStatus('AT_VENDOR');
+    final rusakCount =
+        provider.getCountByStatus('MAINTENANCE') +
+        provider.getCountByStatus('AT_VENDOR');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 16.0, right: 16.0, top: 16.0, bottom: 8.0),
+          padding: const EdgeInsets.only(
+            left: 16.0,
+            right: 16.0,
+            top: 16.0,
+            bottom: 8.0,
+          ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -331,13 +344,33 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             children: [
-              _buildSummaryCard('Tabung', '$tabungCount', 'Aset Terdaftar', const Color(0xFF0055FF)),
+              _buildSummaryCard(
+                'Tabung',
+                '$tabungCount',
+                'Aset Terdaftar',
+                const Color(0xFF0055FF),
+              ),
               const SizedBox(width: 12),
-              _buildSummaryCard('Tersedia', '$tersediaCount', 'Siap disewakan', const Color(0xFF00A67E)),
+              _buildSummaryCard(
+                'Tersedia',
+                '$tersediaCount',
+                'Siap disewakan',
+                const Color(0xFF00A67E),
+              ),
               const SizedBox(width: 12),
-              _buildSummaryCard('Kosong', '$kosongCount', 'Perlu isi ulang', const Color(0xFFF59E0B)),
+              _buildSummaryCard(
+                'Kosong',
+                '$kosongCount',
+                'Perlu isi ulang',
+                const Color(0xFFF59E0B),
+              ),
               const SizedBox(width: 12),
-              _buildSummaryCard('Rusak / Maint', '$rusakCount', 'Dalam perbaikan', const Color(0xFFEF4444)),
+              _buildSummaryCard(
+                'Rusak / Maint',
+                '$rusakCount',
+                'Dalam perbaikan',
+                const Color(0xFFEF4444),
+              ),
             ],
           ),
         ),
@@ -345,7 +378,12 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
     );
   }
 
-  Widget _buildSummaryCard(String title, String count, String subtitle, Color color) {
+  Widget _buildSummaryCard(
+    String title,
+    String count,
+    String subtitle,
+    Color color,
+  ) {
     return Container(
       width: 140,
       padding: const EdgeInsets.all(12),
@@ -365,7 +403,12 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(title, style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary)),
+          Text(
+            title,
+            style: AppTextStyles.caption.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
           const SizedBox(height: 4),
           Row(
             crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -421,7 +464,12 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
 
   // ── FILTER CHIPS ───────────────────────────────────────────────────────────
   Widget _buildFilterChips() {
-    final chips = ['Semua', 'Tabung Oksigen', 'Aksesoris Sewa', 'Alat Medis Jual'];
+    final chips = [
+      'Semua',
+      'Tabung Oksigen',
+      'Aksesoris Sewa',
+      'Alat Medis Jual',
+    ];
     return Container(
       height: 38,
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -440,7 +488,9 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
                 color: isSelected ? AppColors.primary : AppColors.surface,
                 borderRadius: BorderRadius.circular(100),
                 border: Border.all(
-                  color: isSelected ? Colors.transparent : const Color(0xFFE2E8F0),
+                  color: isSelected
+                      ? Colors.transparent
+                      : const Color(0xFFE2E8F0),
                 ),
               ),
               child: Text(
@@ -513,7 +563,10 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
                       ),
                       const SizedBox(height: 6),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFEDEFF5),
                           borderRadius: BorderRadius.circular(4),
@@ -535,7 +588,9 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
                   children: [
                     Text(
                       'Total Stok',
-                      style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+                      style: AppTextStyles.caption.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -562,11 +617,31 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
               crossAxisSpacing: 8,
               mainAxisSpacing: 12,
               children: [
-                _buildGridStatusItem('Tersedia', '$tersedia', const Color(0xFF00A67E)),
-                _buildGridStatusItem('Kosong', '$kosong', const Color(0xFFF59E0B)),
-                _buildGridStatusItem('Disewa', '$disewa', const Color(0xFF0055FF)),
-                _buildGridStatusItem('Di Vendor', '$vendor', const Color(0xFF8B5CF6)),
-                _buildGridStatusItem('Maintenance', '$maintenance', const Color(0xFFEF4444)),
+                _buildGridStatusItem(
+                  'Tersedia',
+                  '$tersedia',
+                  const Color(0xFF00A67E),
+                ),
+                _buildGridStatusItem(
+                  'Kosong',
+                  '$kosong',
+                  const Color(0xFFF59E0B),
+                ),
+                _buildGridStatusItem(
+                  'Disewa',
+                  '$disewa',
+                  const Color(0xFF0055FF),
+                ),
+                _buildGridStatusItem(
+                  'Di Vendor',
+                  '$vendor',
+                  const Color(0xFF8B5CF6),
+                ),
+                _buildGridStatusItem(
+                  'Maintenance',
+                  '$maintenance',
+                  const Color(0xFFEF4444),
+                ),
               ],
             ),
           ],
@@ -628,7 +703,10 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
                       ),
                       const SizedBox(height: 6),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFEDEFF5),
                           borderRadius: BorderRadius.circular(4),
@@ -650,7 +728,9 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
                   children: [
                     Text(
                       'Total Stok',
-                      style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+                      style: AppTextStyles.caption.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -672,9 +752,21 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildGridStatusItem('Tersedia', '$tersedia', const Color(0xFF00A67E)),
-                _buildGridStatusItem('Disewa', '$disewa', const Color(0xFF0055FF)),
-                _buildGridStatusItem('Maintenance', '$maintenance', const Color(0xFFEF4444)),
+                _buildGridStatusItem(
+                  'Tersedia',
+                  '$tersedia',
+                  const Color(0xFF00A67E),
+                ),
+                _buildGridStatusItem(
+                  'Disewa',
+                  '$disewa',
+                  const Color(0xFF0055FF),
+                ),
+                _buildGridStatusItem(
+                  'Maintenance',
+                  '$maintenance',
+                  const Color(0xFFEF4444),
+                ),
               ],
             ),
           ],
@@ -684,11 +776,7 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
   }
 
   // ── SELLABLE CARD ──────────────────────────────────────────────────────────
-  Widget _buildSellableCard(
-    String title,
-    String sku,
-    int tersedia,
-  ) {
+  Widget _buildSellableCard(String title, String sku, int tersedia) {
     return GestureDetector(
       onTap: () {
         Navigator.of(context).push(
@@ -731,7 +819,10 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
                   ),
                   const SizedBox(height: 6),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFEDEFF5),
                       borderRadius: BorderRadius.circular(4),
@@ -753,7 +844,9 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
               children: [
                 Text(
                   'Stok Tersedia',
-                  style: AppTextStyles.caption.copyWith(color: AppColors.success),
+                  style: AppTextStyles.caption.copyWith(
+                    color: AppColors.success,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -799,10 +892,11 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
     );
   }
 
-
-
   // ── Form Stok Masuk Bottom Sheet ───────────────────────────────────────────
-  void _showAddStockBottomSheet(BuildContext context, WarehouseProvider provider) {
+  void _showAddStockBottomSheet(
+    BuildContext context,
+    WarehouseProvider provider,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -828,9 +922,15 @@ class _AddStockBottomSheetState extends State<_AddStockBottomSheet> {
   String? _selectedVendorId;
   String? _selectedProductId;
 
-  final TextEditingController _quantityController = TextEditingController(text: '1');
-  final TextEditingController _unitCostController = TextEditingController(text: '0');
-  final TextEditingController _amountPaidController = TextEditingController(text: '0');
+  final TextEditingController _quantityController = TextEditingController(
+    text: '1',
+  );
+  final TextEditingController _unitCostController = TextEditingController(
+    text: '0',
+  );
+  final TextEditingController _amountPaidController = TextEditingController(
+    text: '0',
+  );
 
   bool _isAutoAmountPaid = true;
   bool _isSubmitting = false;
@@ -838,16 +938,10 @@ class _AddStockBottomSheetState extends State<_AddStockBottomSheet> {
   @override
   void initState() {
     super.initState();
-    _quantityController.addListener(_onCalculationsChanged);
-    _unitCostController.addListener(_onCalculationsChanged);
-    _amountPaidController.addListener(_onAmountPaidManualChanged);
   }
 
   @override
   void dispose() {
-    _quantityController.removeListener(_onCalculationsChanged);
-    _unitCostController.removeListener(_onCalculationsChanged);
-    _amountPaidController.removeListener(_onAmountPaidManualChanged);
     _quantityController.dispose();
     _unitCostController.dispose();
     _amountPaidController.dispose();
@@ -885,6 +979,7 @@ class _AddStockBottomSheetState extends State<_AddStockBottomSheet> {
     if (currentAmt != _totalCost) {
       _isAutoAmountPaid = false;
     }
+    setState(() {});
   }
 
   void _onProductSelected(String? productId) {
@@ -896,10 +991,18 @@ class _AddStockBottomSheetState extends State<_AddStockBottomSheet> {
           orElse: () => null,
         );
         if (product != null) {
-          final double cost = (product['cost'] as num?)?.toDouble() ?? 0.0;
+          final rawCost = product['cost'];
+          double cost = 0.0;
+          if (rawCost is num) {
+            cost = rawCost.toDouble();
+          } else if (rawCost is String) {
+            cost = double.tryParse(rawCost) ?? 0.0;
+          }
           _unitCostController.text = _formatCurrency(cost.toInt());
           if (_isAutoAmountPaid) {
-            _amountPaidController.text = _formatCurrency((_quantity * cost).toInt());
+            _amountPaidController.text = _formatCurrency(
+              (_quantity * cost).toInt(),
+            );
           }
         }
       }
@@ -927,8 +1030,8 @@ class _AddStockBottomSheetState extends State<_AddStockBottomSheet> {
             'productId': _selectedProductId,
             'quantity': _quantity,
             'unitCost': _unitCost,
-          }
-        ]
+          },
+        ],
       };
 
       await widget.provider.addStock(type: 'purchases', data: payload);
@@ -998,10 +1101,15 @@ class _AddStockBottomSheetState extends State<_AddStockBottomSheet> {
                 children: [
                   Text(
                     'Form Stok Masuk (Pembelian)',
-                    style: AppTextStyles.h3.copyWith(fontWeight: FontWeight.bold),
+                    style: AppTextStyles.h3.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, color: AppColors.textSecondary),
+                    icon: const Icon(
+                      Icons.close,
+                      color: AppColors.textSecondary,
+                    ),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
@@ -1018,32 +1126,60 @@ class _AddStockBottomSheetState extends State<_AddStockBottomSheet> {
                 ),
               ),
               const SizedBox(height: 6),
-              DropdownButtonFormField<String>(
-                value: _selectedVendorId,
-                decoration: InputDecoration(
-                  hintText: 'Pilih Supplier',
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: _selectedVendorId,
+                      decoration: InputDecoration(
+                        hintText: 'Pilih Supplier',
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFCBD5E1),
+                          ),
+                        ),
+                      ),
+                      items: widget.provider.vendors
+                          .map<DropdownMenuItem<String>>((vendor) {
+                            return DropdownMenuItem<String>(
+                              value: vendor['id']?.toString(),
+                              child: Text(
+                                vendor['name']?.toString() ?? 'Supplier',
+                              ),
+                            );
+                          })
+                          .toList(),
+                      onChanged: (val) {
+                        setState(() => _selectedVendorId = val);
+                      },
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Pilih supplier terlebih dahulu';
+                        }
+                        return null;
+                      },
+                    ),
                   ),
-                ),
-                items: widget.provider.vendors.map<DropdownMenuItem<String>>((vendor) {
-                  return DropdownMenuItem<String>(
-                    value: vendor['id']?.toString(),
-                    child: Text(vendor['name']?.toString() ?? 'Supplier'),
-                  );
-                }).toList(),
-                onChanged: (val) {
-                  setState(() => _selectedVendorId = val);
-                },
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Pilih supplier terlebih dahulu';
-                  }
-                  return null;
-                },
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.add_circle_outline_rounded,
+                      color: AppColors.primary,
+                      size: 28,
+                    ),
+                    onPressed: _showAddVendorDialog,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
 
@@ -1056,30 +1192,58 @@ class _AddStockBottomSheetState extends State<_AddStockBottomSheet> {
                 ),
               ),
               const SizedBox(height: 6),
-              DropdownButtonFormField<String>(
-                value: _selectedProductId,
-                decoration: InputDecoration(
-                  hintText: 'Pilih Produk',
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: _selectedProductId,
+                      decoration: InputDecoration(
+                        hintText: 'Pilih Produk',
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFCBD5E1),
+                          ),
+                        ),
+                      ),
+                      items: widget.provider.products
+                          .map<DropdownMenuItem<String>>((product) {
+                            return DropdownMenuItem<String>(
+                              value: product['id']?.toString(),
+                              child: Text(
+                                product['name']?.toString() ?? 'Produk',
+                              ),
+                            );
+                          })
+                          .toList(),
+                      onChanged: _onProductSelected,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Pilih produk terlebih dahulu';
+                        }
+                        return null;
+                      },
+                    ),
                   ),
-                ),
-                items: widget.provider.products.map<DropdownMenuItem<String>>((product) {
-                  return DropdownMenuItem<String>(
-                    value: product['id']?.toString(),
-                    child: Text(product['name']?.toString() ?? 'Produk'),
-                  );
-                }).toList(),
-                onChanged: _onProductSelected,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Pilih produk terlebih dahulu';
-                  }
-                  return null;
-                },
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.add_circle_outline_rounded,
+                      color: AppColors.primary,
+                      size: 28,
+                    ),
+                    onPressed: _showAddProductDialog,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
 
@@ -1103,12 +1267,22 @@ class _AddStockBottomSheetState extends State<_AddStockBottomSheet> {
                         TextFormField(
                           controller: _quantityController,
                           keyboardType: TextInputType.number,
-                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
                           decoration: InputDecoration(
                             hintText: '0',
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
+                          onChanged: (val) {
+                            _onCalculationsChanged();
+                          },
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
                               return 'Wajib';
@@ -1143,9 +1317,17 @@ class _AddStockBottomSheetState extends State<_AddStockBottomSheet> {
                           inputFormatters: [CurrencyInputFormatter()],
                           decoration: InputDecoration(
                             prefixText: 'Rp ',
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
+                          onChanged: (val) {
+                            _onCalculationsChanged();
+                          },
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
                               return 'Wajib';
@@ -1175,27 +1357,43 @@ class _AddStockBottomSheetState extends State<_AddStockBottomSheet> {
                 inputFormatters: [CurrencyInputFormatter()],
                 decoration: InputDecoration(
                   prefixText: 'Rp ',
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                   suffixIcon: _isAutoAmountPaid
                       ? IconButton(
-                          icon: const Icon(Icons.edit_note, color: AppColors.primary),
+                          icon: const Icon(
+                            Icons.edit_note,
+                            color: AppColors.primary,
+                          ),
                           onPressed: () {
                             setState(() => _isAutoAmountPaid = false);
                           },
                           tooltip: 'Ubah manual',
                         )
                       : IconButton(
-                          icon: const Icon(Icons.autorenew, color: AppColors.textSecondary),
+                          icon: const Icon(
+                            Icons.autorenew,
+                            color: AppColors.textSecondary,
+                          ),
                           onPressed: () {
                             setState(() {
                               _isAutoAmountPaid = true;
-                              _amountPaidController.text = _formatCurrency(_totalCost.toInt());
+                              _amountPaidController.text = _formatCurrency(
+                                _totalCost.toInt(),
+                              );
                             });
                           },
                           tooltip: 'Bayar Lunas (Otomatis)',
                         ),
                 ),
+                onChanged: (val) {
+                  _onAmountPaidManualChanged();
+                },
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
                     return 'Wajib';
@@ -1243,14 +1441,19 @@ class _AddStockBottomSheetState extends State<_AddStockBottomSheet> {
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                   onPressed: _isSubmitting ? null : _submitForm,
                   child: _isSubmitting
                       ? const SizedBox(
                           width: 20,
                           height: 20,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
                         )
                       : const Text(
                           'Simpan Stok Masuk',
@@ -1268,6 +1471,696 @@ class _AddStockBottomSheetState extends State<_AddStockBottomSheet> {
         ),
       ),
     );
+  }
+
+  void _showAddVendorDialog() {
+    final formKey = GlobalKey<FormState>();
+    final nameController = TextEditingController();
+    final phoneController = TextEditingController();
+    final addressController = TextEditingController();
+    bool isSaving = false;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return AlertDialog(
+              backgroundColor: AppColors.surface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Tambah Supplier Baru',
+                    style: AppTextStyles.h3.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.close,
+                      color: AppColors.textSecondary,
+                      size: 20,
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Divider(color: Color(0xFFECEFF5), height: 1),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Nama Supplier',
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      TextFormField(
+                        controller: nameController,
+                        decoration: InputDecoration(
+                          hintText: 'PT Samator Gas',
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFCBD5E1),
+                            ),
+                          ),
+                        ),
+                        validator: (v) => v == null || v.trim().isEmpty
+                            ? 'Nama wajib diisi'
+                            : null,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Nomor Telepon',
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      TextFormField(
+                        controller: phoneController,
+                        keyboardType: TextInputType.phone,
+                        decoration: InputDecoration(
+                          hintText: '08123456789',
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFCBD5E1),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Alamat',
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      TextFormField(
+                        controller: addressController,
+                        maxLines: 2,
+                        decoration: InputDecoration(
+                          hintText: 'Alamat lengkap supplier',
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFCBD5E1),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isSaving ? null : () => Navigator.pop(context),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.textSecondary,
+                  ),
+                  child: const Text(
+                    'Batal',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: isSaving
+                      ? null
+                      : () async {
+                          if (!formKey.currentState!.validate()) return;
+                          setModalState(() => isSaving = true);
+                          try {
+                            final api = ApiService();
+                            final res = await api.dio.post(
+                              '/inventory/vendors',
+                              data: {
+                                'name': nameController.text.trim(),
+                                'phone': phoneController.text.trim().isEmpty
+                                    ? null
+                                    : phoneController.text.trim(),
+                                'address': addressController.text.trim().isEmpty
+                                    ? null
+                                    : addressController.text.trim(),
+                              },
+                            );
+
+                            final created = api.handleResponse(res);
+                            final String? createdId = created?['id']
+                                ?.toString();
+
+                            if (context.mounted) {
+                              Navigator.pop(context); // Close dialog
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Berhasil menambah supplier baru ✓',
+                                  ),
+                                  backgroundColor: AppColors.success,
+                                ),
+                              );
+
+                              // Refresh warehouse lists
+                              await widget.provider.fetchInventory(
+                                silent: true,
+                              );
+
+                              if (context.mounted && createdId != null) {
+                                setState(() {
+                                  _selectedVendorId = createdId;
+                                });
+                              }
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Gagal menambah supplier: $e'),
+                                  backgroundColor: AppColors.error,
+                                ),
+                              );
+                            }
+                          } finally {
+                            setModalState(() => isSaving = false);
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    minimumSize: const Size(100, 40),
+                  ),
+                  child: isSaving
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          'Simpan',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showAddProductDialog() async {
+    final formKey = GlobalKey<FormState>();
+    final nameController = TextEditingController();
+    final skuController = TextEditingController(
+      text:
+          'PRD-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
+    );
+    final priceController = TextEditingController(text: '0');
+    final costController = TextEditingController(text: '0');
+    final minStockController = TextEditingController(text: '5');
+
+    String? selectedCategoryId;
+    List<dynamic> categories = [];
+    bool isLoadingCats = true;
+    bool isSaving = false;
+
+    // Open dialog first
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            // Fetch categories if not yet fetched
+            if (categories.isEmpty && isLoadingCats) {
+              _fetchCategories().then((list) {
+                setModalState(() {
+                  categories = list;
+                  isLoadingCats = false;
+                  if (categories.isNotEmpty) {
+                    selectedCategoryId = categories.first['id']?.toString();
+                  }
+                });
+              });
+            }
+
+            return AlertDialog(
+              backgroundColor: AppColors.surface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Tambah Barang Baru',
+                    style: AppTextStyles.h3.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.close,
+                      color: AppColors.textSecondary,
+                      size: 20,
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Divider(color: Color(0xFFECEFF5), height: 1),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Nama Barang / Tabung',
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      TextFormField(
+                        controller: nameController,
+                        decoration: InputDecoration(
+                          hintText: 'Regulator Nesco',
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFCBD5E1),
+                            ),
+                          ),
+                        ),
+                        validator: (v) => v == null || v.trim().isEmpty
+                            ? 'Nama wajib diisi'
+                            : null,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'SKU / Kode',
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      TextFormField(
+                        controller: skuController,
+                        decoration: InputDecoration(
+                          hintText: 'REG-NES-001',
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFCBD5E1),
+                            ),
+                          ),
+                        ),
+                        validator: (v) => v == null || v.trim().isEmpty
+                            ? 'SKU wajib diisi'
+                            : null,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Kategori',
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      isLoadingCats
+                          ? const Center(
+                              child: SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            )
+                          : DropdownButtonFormField<String>(
+                              value: selectedCategoryId,
+                              decoration: InputDecoration(
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 12,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFFCBD5E1),
+                                  ),
+                                ),
+                              ),
+                              items: categories.map<DropdownMenuItem<String>>((
+                                cat,
+                              ) {
+                                final rawName =
+                                    cat['name']?.toString() ?? 'Kategori';
+                                String displayName = rawName;
+                                final lower = rawName.toLowerCase();
+                                if (lower == 'cylinder') {
+                                  displayName = 'Tabung';
+                                } else if (lower == 'accessory' ||
+                                    lower == 'accessories') {
+                                  displayName = 'Aksesoris';
+                                } else if (lower == 'regulators' ||
+                                    lower == 'regulator') {
+                                  displayName = 'Regulator';
+                                } else if (lower == 'gas') {
+                                  displayName = 'Gas';
+                                } else if (lower == 'consumables' ||
+                                    lower == 'consumable') {
+                                  displayName = 'Habis Pakai';
+                                }
+                                return DropdownMenuItem<String>(
+                                  value: cat['id']?.toString(),
+                                  child: Text(displayName),
+                                );
+                              }).toList(),
+                              onChanged: (val) {
+                                setModalState(() => selectedCategoryId = val);
+                              },
+                              validator: (v) => v == null || v.isEmpty
+                                  ? 'Kategori wajib dipilih'
+                                  : null,
+                            ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Harga Jual',
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      TextFormField(
+                        controller: priceController,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [CurrencyInputFormatter()],
+                        decoration: InputDecoration(
+                          prefixText: 'Rp ',
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFCBD5E1),
+                            ),
+                          ),
+                        ),
+                        validator: (v) => v == null || v.trim().isEmpty
+                            ? 'Harga jual wajib diisi'
+                            : null,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Harga Beli',
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      TextFormField(
+                        controller: costController,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [CurrencyInputFormatter()],
+                        decoration: InputDecoration(
+                          prefixText: 'Rp ',
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFCBD5E1),
+                            ),
+                          ),
+                        ),
+                        validator: (v) => v == null || v.trim().isEmpty
+                            ? 'Harga beli wajib diisi'
+                            : null,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Stok Minimum',
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      TextFormField(
+                        controller: minStockController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          hintText: '5',
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFCBD5E1),
+                            ),
+                          ),
+                        ),
+                        validator: (v) => v == null || int.tryParse(v) == null
+                            ? 'Stok minimum tidak valid'
+                            : null,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isSaving ? null : () => Navigator.pop(context),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.textSecondary,
+                  ),
+                  child: const Text(
+                    'Batal',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: isSaving
+                      ? null
+                      : () async {
+                          if (!formKey.currentState!.validate()) return;
+                          setModalState(() => isSaving = true);
+                          try {
+                            final cleanPrice = priceController.text.replaceAll(
+                              '.',
+                              '',
+                            );
+                            final cleanCost = costController.text.replaceAll(
+                              '.',
+                              '',
+                            );
+
+                            final api = ApiService();
+                            final res = await api.dio.post(
+                              '/inventory/products',
+                              data: {
+                                'name': nameController.text.trim(),
+                                'sku': skuController.text.trim(),
+                                'categoryId': selectedCategoryId,
+                                'price': double.parse(cleanPrice),
+                                'cost': double.parse(cleanCost),
+                                'minStock': int.parse(minStockController.text),
+                                'currentStock': 0,
+                              },
+                            );
+
+                            final created = api.handleResponse(res);
+                            final String? createdId = created?['id']
+                                ?.toString();
+
+                            if (context.mounted) {
+                              Navigator.pop(context); // Close dialog
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Berhasil menambah barang baru ✓',
+                                  ),
+                                  backgroundColor: AppColors.success,
+                                ),
+                              );
+
+                              // Refresh warehouse lists
+                              await widget.provider.fetchInventory(
+                                silent: true,
+                              );
+
+                              if (context.mounted && createdId != null) {
+                                setState(() {
+                                  _selectedProductId = createdId;
+
+                                  // Update unit cost controller
+                                  final double costVal = double.parse(
+                                    cleanCost,
+                                  );
+                                  _unitCostController.text = _formatCurrency(
+                                    costVal.toInt(),
+                                  );
+                                  if (_isAutoAmountPaid) {
+                                    _amountPaidController.text =
+                                        _formatCurrency(
+                                          (_quantity * costVal).toInt(),
+                                        );
+                                  }
+                                });
+                              }
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Gagal menambah barang: $e'),
+                                  backgroundColor: AppColors.error,
+                                ),
+                              );
+                            }
+                          } finally {
+                            setModalState(() => isSaving = false);
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    minimumSize: const Size(100, 40),
+                  ),
+                  child: isSaving
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          'Simpan',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<List<dynamic>> _fetchCategories() async {
+    try {
+      final api = ApiService();
+      final res = await api.dio.get(
+        '/inventory/categories',
+        queryParameters: {'limit': 100},
+      );
+      final handled = api.handleResponse(res);
+      if (handled is List) return handled;
+      if (handled is Map && handled['items'] is List)
+        return List<dynamic>.from(handled['items']);
+      if (handled is Map && handled['data'] is List)
+        return List<dynamic>.from(handled['data']);
+      return [];
+    } catch (e) {
+      debugPrint('Error fetching categories: $e');
+      return [];
+    }
   }
 }
 

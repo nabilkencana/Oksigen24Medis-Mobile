@@ -332,6 +332,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final vendorCylinders = summary['vendorCylinders'] ?? 0;
     final lowStockCount = summary['lowStockCount'] ?? 0;
     final todayRevenue = summary['todayRevenue'] ?? 0;
+    final List<dynamic> lowStockItems = summary['lowStockItems'] ?? [];
     final List<dynamic> recentActivities = summary['recentActivities'] ?? [];
 
     return SingleChildScrollView(
@@ -346,11 +347,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
             vendorCylinders,
             lowStockCount,
             todayRevenue,
+            lowStockItems,
           ),
           const SizedBox(height: 24.0),
 
           // Quick actions grid
           _buildQuickActions(auth),
+          if (lowStockItems.isNotEmpty) ...[
+            const SizedBox(height: 24.0),
+            _buildCriticalStockSection(lowStockItems),
+          ],
           const SizedBox(height: 24.0),
 
           // Dynamic Activities
@@ -366,6 +372,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     int vendorCylinders,
     int lowStockCount,
     num todayRevenue,
+    List<dynamic> lowStockItems,
   ) {
     final kpis = [
       _KpiData(
@@ -385,6 +392,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         subLabel: 'Perlu diisi ulang segera',
         accentBorder: true,
         valueColor: AppColors.warning,
+        onTap: () => _showCriticalStockBottomSheet(lowStockItems),
       ),
       _KpiData(
         label: 'Pendapatan Hari Ini',
@@ -500,6 +508,365 @@ class _DashboardScreenState extends State<DashboardScreen> {
           },
         );
       }).toList(),
+    );
+  }
+
+  Widget _buildCriticalStockSection(List<dynamic> lowStockItems) {
+    if (lowStockItems.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.warning_amber_rounded, color: AppColors.error, size: 20),
+                const SizedBox(width: 6),
+                Text(
+                  'Peringatan Stok Kritis',
+                  style: AppTextStyles.h3.copyWith(
+                    color: AppColors.error,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: AppColors.error.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '${lowStockItems.length} Item',
+                style: AppTextStyles.caption.copyWith(
+                  color: AppColors.error,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        ListView.separated(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: lowStockItems.length,
+          separatorBuilder: (context, index) => const SizedBox(height: 10),
+          itemBuilder: (context, index) {
+            final item = lowStockItems[index];
+            final name = item['name']?.toString() ?? 'Barang';
+            final currentStock = item['currentStock'] ?? 0;
+            final minStock = item['minStock'] ?? 0;
+            final sku = item['sku']?.toString() ?? '-';
+            final categoryName = item['category']?['name']?.toString() ?? 'Kategori';
+            
+            // Map category to Indonesian
+            String categoryDisplay = categoryName;
+            final lowerCat = categoryName.toLowerCase();
+            if (lowerCat == 'cylinder') {
+              categoryDisplay = 'Tabung';
+            } else if (lowerCat == 'accessory' || lowerCat == 'accessories') {
+              categoryDisplay = 'Aksesoris';
+            } else if (lowerCat == 'regulators' || lowerCat == 'regulator') {
+              categoryDisplay = 'Regulator';
+            } else if (lowerCat == 'gas') {
+              categoryDisplay = 'Gas';
+            } else if (lowerCat == 'consumables' || lowerCat == 'consumable') {
+              categoryDisplay = 'Habis Pakai';
+            }
+
+            return Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.error.withOpacity(0.2)),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x05000000),
+                    blurRadius: 8,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.error.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.inventory_2_outlined,
+                      color: AppColors.error,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          name,
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'SKU: $sku • $categoryDisplay',
+                          style: AppTextStyles.caption.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            '$currentStock',
+                            style: AppTextStyles.bodyLarge.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.error,
+                            ),
+                          ),
+                          Text(
+                            ' / $minStock',
+                            style: AppTextStyles.caption.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Stok Minim',
+                        style: AppTextStyles.caption.copyWith(
+                          color: AppColors.textSecondary,
+                          fontSize: 9,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  void _showCriticalStockBottomSheet(List<dynamic> lowStockItems) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
+          ),
+          padding: EdgeInsets.only(
+            top: 16,
+            left: 16,
+            right: 16,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Pull bar
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFCBD5E1),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.warning_amber_rounded, color: AppColors.error, size: 24),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Daftar Stok Kritis',
+                        style: AppTextStyles.h2.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.error,
+                        ),
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: AppColors.textSecondary),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const Divider(color: Color(0xFFECEFF5)),
+              const SizedBox(height: 8),
+              if (lowStockItems.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 32),
+                  child: Center(
+                    child: Text(
+                      'Tidak ada stok kritis saat ini.',
+                      style: TextStyle(color: AppColors.textSecondary),
+                    ),
+                  ),
+                )
+              else
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: lowStockItems.length,
+                    separatorBuilder: (context, index) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final item = lowStockItems[index];
+                      final name = item['name']?.toString() ?? 'Barang';
+                      final currentStock = item['currentStock'] ?? 0;
+                      final minStock = item['minStock'] ?? 0;
+                      final sku = item['sku']?.toString() ?? '-';
+                      final categoryName = item['category']?['name']?.toString() ?? 'Kategori';
+                      
+                      String categoryDisplay = categoryName;
+                      final lowerCat = categoryName.toLowerCase();
+                      if (lowerCat == 'cylinder') {
+                        categoryDisplay = 'Tabung';
+                      } else if (lowerCat == 'accessory' || lowerCat == 'accessories') {
+                        categoryDisplay = 'Aksesoris';
+                      } else if (lowerCat == 'regulators' || lowerCat == 'regulator') {
+                        categoryDisplay = 'Regulator';
+                      } else if (lowerCat == 'gas') {
+                        categoryDisplay = 'Gas';
+                      } else if (lowerCat == 'consumables' || lowerCat == 'consumable') {
+                        categoryDisplay = 'Habis Pakai';
+                      }
+
+                      return Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF2F2),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.error.withOpacity(0.2)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.inventory_2_outlined, color: AppColors.error),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    name,
+                                    style: AppTextStyles.bodyMedium.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'SKU: $sku • $categoryDisplay',
+                                    style: AppTextStyles.caption.copyWith(
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(
+                                      '$currentStock',
+                                      style: AppTextStyles.bodyLarge.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.error,
+                                      ),
+                                    ),
+                                    Text(
+                                      ' / $minStock',
+                                      style: AppTextStyles.caption.copyWith(
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Stok Minim',
+                                  style: AppTextStyles.caption.copyWith(
+                                    color: AppColors.textSecondary,
+                                    fontSize: 9,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    // Navigate to Warehouse tab (index 2)
+                    setState(() {
+                      _selectedIndex = 2;
+                    });
+                  },
+                  child: const Text(
+                    'Kelola Stok di Gudang',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -683,6 +1050,7 @@ class _KpiData {
   final String subLabel;
   final bool accentBorder;
   final Color valueColor;
+  final VoidCallback? onTap;
 
   const _KpiData({
     required this.label,
@@ -692,6 +1060,7 @@ class _KpiData {
     required this.subLabel,
     required this.accentBorder,
     required this.valueColor,
+    this.onTap,
   });
 }
 
@@ -740,86 +1109,89 @@ class _KpiCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 200,
-      decoration: BoxDecoration(
-        color: Colors.white.withAlpha(217), // rgba(255,255,255,0.85)
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white, width: 0.5),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0A000000), // rgba(0,0,0,0.04)
-            blurRadius: 12,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Stack(
-          children: [
-            if (data.accentBorder)
-              Positioned(
-                left: 0,
-                top: 0,
-                bottom: 0,
-                width: 4,
-                child: Container(color: AppColors.warning),
-              ),
-            Padding(
-              padding: EdgeInsets.only(
-                left: data.accentBorder ? 20 : 16,
-                right: 16,
-                top: 14,
-                bottom: 14,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Label
-                  Text(
-                    data.label,
-                    style: AppTextStyles.caption.copyWith(
-                      color: const Color(0xFF5E5E5E),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  // Value + badge row
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        data.value,
-                        style: AppTextStyles.kpiNumber.copyWith(
-                          fontSize:
-                              20, // slightly smaller to avoid currency overflow
-                          color: data.valueColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  // Sub label or badge details
-                  Text(
-                    data.hasBadge ? data.badgeValue : data.subLabel,
-                    style: AppTextStyles.caption.copyWith(
-                      color: data.hasBadge
-                          ? AppColors.primary
-                          : const Color(0xFF737688),
-                      fontWeight: data.hasBadge
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
+    return GestureDetector(
+      onTap: data.onTap,
+      child: Container(
+        width: 200,
+        decoration: BoxDecoration(
+          color: Colors.white.withAlpha(217), // rgba(255,255,255,0.85)
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white, width: 0.5),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0A000000), // rgba(0,0,0,0.04)
+              blurRadius: 12,
+              offset: Offset(0, 4),
             ),
           ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Stack(
+            children: [
+              if (data.accentBorder)
+                Positioned(
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: 4,
+                  child: Container(color: AppColors.warning),
+                ),
+              Padding(
+                padding: EdgeInsets.only(
+                  left: data.accentBorder ? 20 : 16,
+                  right: 16,
+                  top: 14,
+                  bottom: 14,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Label
+                    Text(
+                      data.label,
+                      style: AppTextStyles.caption.copyWith(
+                        color: const Color(0xFF5E5E5E),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    // Value + badge row
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          data.value,
+                          style: AppTextStyles.kpiNumber.copyWith(
+                            fontSize:
+                                20, // slightly smaller to avoid currency overflow
+                            color: data.valueColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    // Sub label or badge details
+                    Text(
+                      data.hasBadge ? data.badgeValue : data.subLabel,
+                      style: AppTextStyles.caption.copyWith(
+                        color: data.hasBadge
+                            ? AppColors.primary
+                            : const Color(0xFF737688),
+                        fontWeight: data.hasBadge
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
