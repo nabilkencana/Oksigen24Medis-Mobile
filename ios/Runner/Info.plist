@@ -4,12 +4,6 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
-	<key>NSCameraUsageDescription</key>
-	<string>Aplikasi memerlukan akses kamera untuk memindai barcode dan QR code tabung/barang.</string>
-	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>Aplikasi memerlukan akses Bluetooth untuk menghubungkan dan mencetak struk kasir menggunakan printer thermal.</string>
-	<key>NSBluetoothPeripheralUsageDescription</key>
-	<string>Aplikasi memerlukan akses Bluetooth untuk menghubungkan dan mencetak struk kasir menggunakan printer thermal.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
@@ -32,6 +26,12 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Aplikasi memerlukan akses Bluetooth untuk menghubungkan dan mencetak struk kasir menggunakan printer thermal.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>Aplikasi memerlukan akses Bluetooth untuk menghubungkan dan mencetak struk kasir menggunakan printer thermal.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Aplikasi memerlukan akses kamera untuk memindai barcode dan QR code tabung/barang.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -55,6 +55,10 @@
 	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
