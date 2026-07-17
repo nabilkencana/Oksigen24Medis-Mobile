@@ -94,7 +94,14 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     // Map sales
     for (var s in provider.sales) {
       final invoice = s['invoiceNo'] ?? 'INV-SALES';
-      final type = invoice.startsWith('RFL') ? 'Isi Ulang' : 'Penjualan';
+      // Deteksi tipe: cek transactionType dari backend, lalu prefix invoice
+      final backendType = s['transactionType']?.toString().toUpperCase() ?? '';
+      final String type;
+      if (backendType == 'REFILL' || invoice.startsWith('RFL')) {
+        type = 'Isi Ulang';
+      } else {
+        type = 'Penjualan';
+      }
       list.add({
         'id': s['id'],
         'invoiceNo': invoice,
@@ -104,6 +111,20 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
         'status': 'SELESAI', // immediate sale is complete
         'totalAmount': double.tryParse(s['amountPaid']?.toString() ?? s['totalAmount']?.toString() ?? '0') ?? 0.0,
         'original': s,
+      });
+    }
+
+    // Map refills
+    for (var r in provider.customerRefills) {
+      list.add({
+        'id': r['id'],
+        'invoiceNo': r['invoiceNo'] ?? 'INV-REFILL',
+        'customerName': r['customer']?['name'] ?? 'Jual Putus',
+        'createdAt': r['createdAt'] ?? DateTime.now().toIso8601String(),
+        'type': 'Isi Ulang',
+        'status': 'SELESAI',
+        'totalAmount': double.tryParse(r['amountPaid']?.toString() ?? r['totalAmount']?.toString() ?? '0') ?? 0.0,
+        'original': r,
       });
     }
 
@@ -419,12 +440,39 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
               // Penjualan or Isi Ulang
               final List<dynamic> items = original['items'] ?? [];
               for (var it in items) {
-                final String defaultName = type == 'Isi Ulang' ? 'Refill Oksigen' : 'Alat Medis';
-                final prodName = it['product']?['name'] ?? defaultName;
+                if (type == 'Isi Ulang') {
+                  // Untuk isi ulang: coba ambil info ukuran dari field 'size' atau nama produk
+                  final String size = it['size']?.toString() ?? '';
+                  final String prodName = it['product']?['name']?.toString() ?? '';
+                  final String itemName;
+                  if (size.isNotEmpty) {
+                    itemName = 'Refill Tabung Oksigen $size';
+                  } else if (prodName.isNotEmpty && !prodName.toLowerCase().contains('regulator')) {
+                    itemName = prodName;
+                  } else {
+                    itemName = 'Refill Oksigen Medis';
+                  }
+                  detailItems.add(DetailItem(
+                    name: itemName,
+                    qty: it['quantity'] ?? 1,
+                    unitPrice: double.tryParse(it['unitPrice']?.toString() ?? '0')?.round() ?? 0,
+                  ));
+                } else {
+                  // Penjualan biasa
+                  final prodName = it['product']?['name'] ?? 'Alat Medis';
+                  detailItems.add(DetailItem(
+                    name: prodName,
+                    qty: it['quantity'] ?? 1,
+                    unitPrice: double.tryParse(it['unitPrice']?.toString() ?? '0')?.round() ?? 0,
+                  ));
+                }
+              }
+              // Jika items kosong tapi tipe Isi Ulang, buat item fallback
+              if (detailItems.isEmpty && type == 'Isi Ulang') {
                 detailItems.add(DetailItem(
-                  name: prodName,
-                  qty: it['quantity'] ?? 1,
-                  unitPrice: double.tryParse(it['unitPrice']?.toString() ?? '0')?.round() ?? 0,
+                  name: 'Refill Oksigen Medis',
+                  qty: 1,
+                  unitPrice: tx['totalAmount'].round(),
                 ));
               }
             }
@@ -464,6 +512,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                   rentalId: type == 'Sewa Tabung' ? original['id']?.toString() : null,
                   invoiceNo: tx['invoiceNo'],
                   customerName: tx['customerName'],
+                  customerType: type, // tampilkan tipe transaksi di detail
                   dateStr: dateStr,
                   status: status,
                   totalTagihan: tx['totalAmount'].round(),

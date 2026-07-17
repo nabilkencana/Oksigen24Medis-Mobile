@@ -121,13 +121,25 @@ class _PaymentScreenState extends State<PaymentScreen> {
         if (result['invoiceNo'] != null) {
           dynamicInvoiceNo = result['invoiceNo'];
         }
-      } else if (widget.type == 'SALE' || widget.type == 'REFILL') {
+      } else if (widget.type == 'SALE') {
         // Submit Sale API
         final result = await provider.submitSale(
           customerId: widget.customerId,
           amountPaid: _selectedMethod == 'Tunai' ? _receivedAmount.toDouble() : widget.totalPrice.toDouble(),
           paymentMethod: _selectedMethod.toUpperCase(),
           items: widget.items ?? [],
+        );
+        if (result['invoiceNo'] != null) {
+          dynamicInvoiceNo = result['invoiceNo'];
+        }
+      } else if (widget.type == 'REFILL') {
+        // Submit Customer Refill API
+        final result = await provider.submitCustomerRefill(
+          customerId: widget.customerId,
+          amountPaid: _selectedMethod == 'Tunai' ? _receivedAmount.toDouble() : widget.totalPrice.toDouble(),
+          paymentMethod: _selectedMethod.toUpperCase(),
+          items: widget.items ?? [],
+          notes: 'Customer refill checkout from mobile client',
         );
         if (result['invoiceNo'] != null) {
           dynamicInvoiceNo = result['invoiceNo'];

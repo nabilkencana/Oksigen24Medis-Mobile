@@ -532,24 +532,54 @@ class _RefillFormScreenState extends State<RefillFormScreen> {
                     }
 
                     // Map cylinder IDs dynamically per size
-                    final String prodId = provider.products.isNotEmpty
-                        ? provider.products.first['id'].toString()
-                        : 'prod-uuid';
                     final totalQty = _cylinderQty.values.fold(
                       0,
                       (a, b) => a + b,
                     );
-                    final items = [
-                      {'productId': prodId, 'quantity': totalQty},
-                    ];
 
-                    final List<ReceiptItem> receiptItems = [
-                      ReceiptItem(
+                    if (totalQty == 0) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Pilih minimal 1 tabung untuk diisi ulang',
+                          ),
+                          backgroundColor: Colors.redAccent,
+                        ),
+                      );
+                      return;
+                    }
+
+                    // Build per-size items list for the API
+                    // Buat items per ukuran tabung
+                    final List<Map<String, dynamic>> items = [];
+                    final List<ReceiptItem> receiptItems = [];
+
+                    _cylinderQty.forEach((size, qty) {
+                      if (qty > 0) {
+                        final pricePerUnit = tarif ~/ totalQty;
+                        // Untuk API customer refill:
+                        items.add({
+                          'cylinderSize': size,
+                          'quantity': qty,
+                          'unitPrice': pricePerUnit,
+                        });
+                        // Untuk struk: tampilkan per ukuran
+                        receiptItems.add(ReceiptItem(
+                          name: 'Refill Tabung Oksigen $size',
+                          price: pricePerUnit * qty,
+                          quantity: qty,
+                        ));
+                      }
+                    });
+
+                    // Jika receiptItems kosong (edge case), tambahkan satu item total
+                    if (receiptItems.isEmpty) {
+                      receiptItems.add(ReceiptItem(
                         name: 'Refill Oksigen Medis',
                         price: tarif,
                         quantity: 1,
-                      ),
-                    ];
+                      ));
+                    }
 
                     Navigator.of(context).push(
                       MaterialPageRoute(

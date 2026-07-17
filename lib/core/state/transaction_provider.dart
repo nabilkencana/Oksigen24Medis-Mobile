@@ -10,6 +10,7 @@ class TransactionProvider extends ChangeNotifier {
   List<dynamic> _rentals = [];
   List<dynamic> _sales = [];
   List<dynamic> _purchases = [];
+  List<dynamic> _customerRefills = [];
   bool _isLoading = false;
   bool _isCustomerLoading = false;
   String? _error;
@@ -18,6 +19,7 @@ class TransactionProvider extends ChangeNotifier {
   List<dynamic> get rentals => _rentals;
   List<dynamic> get sales => _sales;
   List<dynamic> get purchases => _purchases;
+  List<dynamic> get customerRefills => _customerRefills;
   bool get isLoading => _isLoading;
   bool get isCustomerLoading => _isCustomerLoading;
   String? get error => _error;
@@ -106,11 +108,13 @@ class TransactionProvider extends ChangeNotifier {
         _api.dio.get('/transactions/rentals', queryParameters: {'limit': 100}),
         _api.dio.get('/transactions/sales', queryParameters: {'limit': 100}),
         _api.dio.get('/transactions/purchases', queryParameters: {'limit': 100}),
+        _api.dio.get('/transactions/refills/customer', queryParameters: {'limit': 100}),
       ]);
 
       final rentalRes = _api.handleResponse(futures[0]);
       final saleRes = _api.handleResponse(futures[1]);
       final purchaseRes = _api.handleResponse(futures[2]);
+      final refillRes = _api.handleResponse(futures[3]);
 
       if (rentalRes is List) {
         _rentals = rentalRes;
@@ -134,6 +138,14 @@ class TransactionProvider extends ChangeNotifier {
         _purchases = List<dynamic>.from(purchaseRes['items']);
       } else if (purchaseRes is Map && purchaseRes['data'] is List) {
         _purchases = List<dynamic>.from(purchaseRes['data']);
+      }
+
+      if (refillRes is List) {
+        _customerRefills = refillRes;
+      } else if (refillRes is Map && refillRes['items'] is List) {
+        _customerRefills = List<dynamic>.from(refillRes['items']);
+      } else if (refillRes is Map && refillRes['data'] is List) {
+        _customerRefills = List<dynamic>.from(refillRes['data']);
       }
 
       _error = null;
@@ -188,6 +200,7 @@ class TransactionProvider extends ChangeNotifier {
     required double amountPaid,
     required List<Map<String, dynamic>> items,
     String? paymentMethod,
+    String? transactionType, // 'REFILL' untuk transaksi isi ulang
   }) async {
     _isLoading = true;
     notifyListeners();
@@ -200,6 +213,43 @@ class TransactionProvider extends ChangeNotifier {
           'amountPaid': amountPaid,
           'paymentMethod': paymentMethod ?? 'TUNAI',
           'items': items,
+          'transactionType': transactionType,
+        },
+      );
+      final data = _api.handleResponse(response);
+      await fetchTransactions(silent: true);
+      return data;
+    } catch (e) {
+      if (e is DioException) {
+        throw _api.handleDioError(e);
+      }
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // Submit Customer Refill Transaction
+  Future<Map<String, dynamic>> submitCustomerRefill({
+    String? customerId,
+    required double amountPaid,
+    required List<Map<String, dynamic>> items,
+    String? paymentMethod,
+    String? notes,
+  }) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final response = await _api.dio.post(
+        '/transactions/refills/customer',
+        data: {
+          'customerId': customerId,
+          'amountPaid': amountPaid,
+          'paymentMethod': paymentMethod ?? 'TUNAI',
+          'items': items,
+          'notes': notes,
         },
       );
       final data = _api.handleResponse(response);
