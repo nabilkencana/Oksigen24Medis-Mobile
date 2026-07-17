@@ -1115,53 +1115,57 @@ class _ScanningPulseState extends State<_ScanningPulse>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return Stack(
-          alignment: Alignment.center,
-          children: [
-            // Outer pulse circle
-            Container(
-              width: 80 * _controller.value,
-              height: 80 * _controller.value,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFF0055FF).withValues(alpha: 0.2 * (1.0 - _controller.value)),
+    return SizedBox(
+      width: 160,
+      height: 160,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          return Stack(
+            alignment: Alignment.center,
+            children: [
+              // Outer pulse circle
+              Container(
+                width: 60 + 100 * _controller.value,
+                height: 60 + 100 * _controller.value,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF0055FF).withOpacity(0.2 * (1.0 - _controller.value)),
+                ),
               ),
-            ),
-            // Middle pulse circle
-            Container(
-              width: 60 * _controller.value,
-              height: 60 * _controller.value,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFF0055FF).withValues(alpha: 0.4 * (1.0 - _controller.value)),
+              // Middle pulse circle
+              Container(
+                width: 60 + 50 * _controller.value,
+                height: 60 + 50 * _controller.value,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF0055FF).withOpacity(0.4 * (1.0 - _controller.value)),
+                ),
               ),
-            ),
-            // Glowing center icon
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: const BoxDecoration(
-                color: Color(0xFF0055FF),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Color(0x330055FF),
-                    blurRadius: 10,
-                    offset: Offset(0, 4),
-                  ),
-                ],
+              // Glowing center icon
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF0055FF),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(0x330055FF),
+                      blurRadius: 10,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.bluetooth_searching_rounded,
+                  color: Colors.white,
+                  size: 28,
+                ),
               ),
-              child: const Icon(
-                Icons.bluetooth_searching_rounded,
-                color: Colors.white,
-                size: 28,
-              ),
-            ),
-          ],
-        );
-      },
+            ],
+          );
+        },
+      ),
     );
   }
 }
