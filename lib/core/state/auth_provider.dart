@@ -147,7 +147,7 @@ class AuthProvider extends ChangeNotifier {
         '/auth/profile',
         data: {
           'fullName': fullName,
-          if (branch != null) 'branch': branch,
+          'branch': ?branch,
         },
       );
       final data = _api.handleResponse(response);

@@ -588,7 +588,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                   const Text('Pilih Serial Number:', style: TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
-                    value: selectedSerial,
+                    initialValue: selectedSerial,
                     decoration: InputDecoration(
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -614,7 +614,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                   const Text('Pilih Status Baru:', style: TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
-                    value: selectedStatus,
+                    initialValue: selectedStatus,
                     decoration: InputDecoration(
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -969,8 +969,8 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
     final encodedData = Uri.encodeComponent(data);
     final qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=$encodedData';
     final GlobalKey labelKey = GlobalKey();
-    bool _isQrLoaded = false;
-    bool _isExporting = false;
+    bool isQrLoaded = false;
+    bool isExporting = false;
 
     showDialog(
       context: context,
@@ -1062,10 +1062,10 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                                   height: 160,
                                   fit: BoxFit.contain,
                                   frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-                                    if (frame != null && !_isQrLoaded) {
+                                    if (frame != null && !isQrLoaded) {
                                       WidgetsBinding.instance.addPostFrameCallback((_) {
                                         setModalState(() {
-                                          _isQrLoaded = true;
+                                          isQrLoaded = true;
                                         });
                                       });
                                     }
@@ -1143,11 +1143,11 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                           backgroundColor: const Color(0xFF0055FF),
                           foregroundColor: Colors.white,
                           elevation: 2,
-                          shadowColor: const Color(0xFF0055FF).withOpacity(0.3),
+                          shadowColor: const Color(0xFF0055FF).withValues(alpha: 0.3),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          disabledBackgroundColor: const Color(0xFF0055FF).withOpacity(0.5),
+                          disabledBackgroundColor: const Color(0xFF0055FF).withValues(alpha: 0.5),
                         ),
-                        icon: _isExporting
+                        icon: isExporting
                             ? const SizedBox(
                                 width: 20,
                                 height: 20,
@@ -1155,13 +1155,13 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                               )
                             : const Icon(Icons.share_rounded, size: 20),
                         label: Text(
-                          _isExporting ? 'Memproses...' : 'Ekspor & Bagikan Gambar',
+                          isExporting ? 'Memproses...' : 'Ekspor & Bagikan Gambar',
                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                         ),
-                        onPressed: !_isQrLoaded || _isExporting
+                        onPressed: !isQrLoaded || isExporting
                             ? null
                             : () async {
-                                setModalState(() => _isExporting = true);
+                                setModalState(() => isExporting = true);
                                 try {
                                   // Wait for rendering framework
                                   await Future.delayed(const Duration(milliseconds: 100));
@@ -1185,7 +1185,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                                     );
                                   }
                                 } finally {
-                                  setModalState(() => _isExporting = false);
+                                  setModalState(() => isExporting = false);
                                 }
                               },
                       ),

@@ -90,7 +90,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
+                      color: Colors.white.withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white24, width: 2),
                     ),
@@ -114,7 +114,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Text(
                     'Sistem POS & Inventaris Tabung Medis',
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.85),
+                      color: Colors.white.withValues(alpha: 0.85),
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
                     ),
@@ -138,7 +138,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       border: Border.all(color: const Color(0xFFE2E8F0), width: 0.5),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF0F172A).withOpacity(0.05),
+                          color: const Color(0xFF0F172A).withValues(alpha: 0.05),
                           blurRadius: 20,
                           offset: const Offset(0, 8),
                         ),
@@ -257,7 +257,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 backgroundColor: const Color(0xFF0055FF),
                                 foregroundColor: Colors.white,
                                 elevation: 2,
-                                shadowColor: const Color(0xFF0055FF).withOpacity(0.3),
+                                shadowColor: const Color(0xFF0055FF).withValues(alpha: 0.3),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(14),
                                 ),
@@ -371,7 +371,7 @@ class _LoginScreenState extends State<LoginScreen> {
             border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF0F172A).withOpacity(0.02),
+                color: const Color(0xFF0F172A).withValues(alpha: 0.02),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),

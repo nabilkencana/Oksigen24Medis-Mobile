@@ -339,7 +339,7 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
             child: ClipPath(
               clipper: ScannerOverlayClipper(),
               child: Container(
-                color: Colors.black.withOpacity(0.65),
+                color: Colors.black.withValues(alpha: 0.65),
               ),
             ),
           ),
@@ -373,7 +373,7 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
                             borderRadius: BorderRadius.circular(1.5),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.redAccent.withOpacity(0.8),
+                                color: Colors.redAccent.withValues(alpha: 0.8),
                                 blurRadius: 8,
                                 spreadRadius: 1,
                               ),
@@ -441,7 +441,7 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.4),
+                    color: Colors.black.withValues(alpha: 0.4),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),

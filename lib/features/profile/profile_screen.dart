@@ -537,7 +537,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             backgroundColor: const Color(0xFF0055FF),
                             foregroundColor: Colors.white,
                             elevation: 2,
-                            shadowColor: const Color(0xFF0055FF).withOpacity(0.3),
+                            shadowColor: const Color(0xFF0055FF).withValues(alpha: 0.3),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -1245,7 +1245,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(icon, color: color, size: 20),
@@ -1701,7 +1701,7 @@ class _ScanningPulseState extends State<_ScanningPulse>
               height: 80 * _controller.value,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFF0055FF).withOpacity(0.2 * (1.0 - _controller.value)),
+                color: const Color(0xFF0055FF).withValues(alpha: 0.2 * (1.0 - _controller.value)),
               ),
             ),
             // Middle pulse circle
@@ -1710,7 +1710,7 @@ class _ScanningPulseState extends State<_ScanningPulse>
               height: 60 * _controller.value,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFF0055FF).withOpacity(0.4 * (1.0 - _controller.value)),
+                color: const Color(0xFF0055FF).withValues(alpha: 0.4 * (1.0 - _controller.value)),
               ),
             ),
             // Glowing center icon
