@@ -88,8 +88,12 @@ class LocalNotificationService {
     debugPrint('[FCM] Permission status: ${settings.authorizationStatus}');
 
     // Get FCM token (used by backend to send targeted push)
-    _fcmToken = await _fcm.getToken();
-    debugPrint('[FCM] Token: $_fcmToken');
+    try {
+      _fcmToken = await _fcm.getToken();
+      debugPrint('[FCM] Token: $_fcmToken');
+    } catch (e) {
+      debugPrint('[FCM] Failed to get token: $e');
+    }
 
     // Listen for token refresh
     _fcm.onTokenRefresh.listen((token) {
