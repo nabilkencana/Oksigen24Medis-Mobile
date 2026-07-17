@@ -377,7 +377,7 @@ class _RefillFormScreenState extends State<RefillFormScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Stok Tersedia: $stock',
+                  'Stok Toko: $stock (Bisa Isi Langsung)',
                   style: AppTextStyles.caption.copyWith(
                     color: stock <= 3
                         ? AppColors.warning
