@@ -127,8 +127,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final authProvider = Provider.of<AuthProvider>(context);
     final dashboardProvider = Provider.of<DashboardProvider>(context);
     final notifProvider = Provider.of<NotificationProvider>(context);
-    final hasUnread = notifProvider.unreadCount > 0 ||
-        (dashboardProvider.summary?['lowStockCount'] as int? ?? 0) > 0;
+    final hasUnread = notifProvider.unreadCount > 0;
 
     Widget currentBody;
     PreferredSizeWidget? currentAppBar;
@@ -248,6 +247,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     child: Consumer<NotificationProvider>(
                       builder: (_, np, child) {
                         final count = np.unreadCount;
+                        if (count <= 0) return const SizedBox.shrink();
                         return Container(
                           constraints: const BoxConstraints(
                               minWidth: 16, minHeight: 16),

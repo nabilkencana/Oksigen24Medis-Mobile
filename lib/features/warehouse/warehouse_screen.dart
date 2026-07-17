@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:oksigen24medis_mobile2/core/theme/app_theme.dart';
 import 'package:oksigen24medis_mobile2/core/state/auth_provider.dart';
 import 'package:oksigen24medis_mobile2/core/state/warehouse_provider.dart';
@@ -37,11 +38,20 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
     super.dispose();
   }
 
+  String _mapOxygenTypeName(String name) {
+    final lowercase = name.toLowerCase();
+    if (lowercase == 'medical oxygen 99.5%' || lowercase == 'medical oxygen') {
+      return 'Tabung Oksigen';
+    }
+    return name;
+  }
+
   // Helper to group actual cylinders by oxygenType & size
   List<Map<String, dynamic>> _getGroupedCylinders(List<dynamic> list) {
     final Map<String, List<dynamic>> grouped = {};
     for (var cyl in list) {
-      final String otName = cyl['oxygenType']?['name'] ?? 'Medical Oxygen';
+      final String otNameRaw = cyl['oxygenType']?['name'] ?? 'Medical Oxygen';
+      final String otName = _mapOxygenTypeName(otNameRaw);
       final String size = cyl['size'] ?? '6m3';
       final key = '$otName ($size)';
       grouped.putIfAbsent(key, () => []).add(cyl);
@@ -793,122 +803,503 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
 
   // ── Form Stok Masuk Bottom Sheet ───────────────────────────────────────────
   void _showAddStockBottomSheet(BuildContext context, WarehouseProvider provider) {
-    // Populate items dynamically from API response (products)
-    final dropdownItems = provider.products.map((p) => p['name']?.toString() ?? 'Produk').toList();
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
+      backgroundColor: Colors.transparent,
       builder: (BuildContext context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-            left: 16,
-            right: 16,
-            top: 16,
+        return _AddStockBottomSheet(provider: provider);
+      },
+    );
+  }
+}
+
+class _AddStockBottomSheet extends StatefulWidget {
+  final WarehouseProvider provider;
+  const _AddStockBottomSheet({required this.provider});
+
+  @override
+  State<_AddStockBottomSheet> createState() => _AddStockBottomSheetState();
+}
+
+class _AddStockBottomSheetState extends State<_AddStockBottomSheet> {
+  final _formKey = GlobalKey<FormState>();
+
+  String? _selectedVendorId;
+  String? _selectedProductId;
+
+  final TextEditingController _quantityController = TextEditingController(text: '1');
+  final TextEditingController _unitCostController = TextEditingController(text: '0');
+  final TextEditingController _amountPaidController = TextEditingController(text: '0');
+
+  bool _isAutoAmountPaid = true;
+  bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _quantityController.addListener(_onCalculationsChanged);
+    _unitCostController.addListener(_onCalculationsChanged);
+    _amountPaidController.addListener(_onAmountPaidManualChanged);
+  }
+
+  @override
+  void dispose() {
+    _quantityController.removeListener(_onCalculationsChanged);
+    _unitCostController.removeListener(_onCalculationsChanged);
+    _amountPaidController.removeListener(_onAmountPaidManualChanged);
+    _quantityController.dispose();
+    _unitCostController.dispose();
+    _amountPaidController.dispose();
+    super.dispose();
+  }
+
+  int get _quantity {
+    return int.tryParse(_quantityController.text) ?? 0;
+  }
+
+  double get _unitCost {
+    final clean = _unitCostController.text.replaceAll('.', '');
+    return double.tryParse(clean) ?? 0.0;
+  }
+
+  double get _amountPaid {
+    final clean = _amountPaidController.text.replaceAll('.', '');
+    return double.tryParse(clean) ?? 0.0;
+  }
+
+  double get _totalCost {
+    return _quantity * _unitCost;
+  }
+
+  void _onCalculationsChanged() {
+    if (_isAutoAmountPaid) {
+      final total = _totalCost.toInt();
+      _amountPaidController.text = _formatCurrency(total);
+    }
+    setState(() {});
+  }
+
+  void _onAmountPaidManualChanged() {
+    final double currentAmt = _amountPaid;
+    if (currentAmt != _totalCost) {
+      _isAutoAmountPaid = false;
+    }
+  }
+
+  void _onProductSelected(String? productId) {
+    setState(() {
+      _selectedProductId = productId;
+      if (productId != null) {
+        final product = widget.provider.products.firstWhere(
+          (p) => p['id'] == productId,
+          orElse: () => null,
+        );
+        if (product != null) {
+          final double cost = (product['cost'] as num?)?.toDouble() ?? 0.0;
+          _unitCostController.text = _formatCurrency(cost.toInt());
+          if (_isAutoAmountPaid) {
+            _amountPaidController.text = _formatCurrency((_quantity * cost).toInt());
+          }
+        }
+      }
+    });
+  }
+
+  String _formatCurrency(int amount) {
+    return amount.toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]}.',
+    );
+  }
+
+  Future<void> _submitForm() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      final payload = {
+        'vendorId': _selectedVendorId,
+        'amountPaid': _amountPaid,
+        'items': [
+          {
+            'productId': _selectedProductId,
+            'quantity': _quantity,
+            'unitCost': _unitCost,
+          }
+        ]
+      };
+
+      await widget.provider.addStock(type: 'purchases', data: payload);
+
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Stok baru (pembelian) berhasil disimpan ✓'),
+            backgroundColor: AppColors.success,
           ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(2),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal menyimpan stok: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final double total = _totalCost;
+    final formattedTotal = _formatCurrency(total.toInt());
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+        left: 20,
+        right: 20,
+        top: 16,
+      ),
+      child: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE2E8F0),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Form Stok Masuk (Pembelian)',
+                    style: AppTextStyles.h3.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: AppColors.textSecondary),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const Divider(color: Color(0xFFECEFF5)),
+              const SizedBox(height: 16),
+
+              // ── SUPPLIER / VENDOR DROPDOWN ─────────────────────────────────
+              Text(
+                'Supplier / Vendor',
+                style: AppTextStyles.bodyMedium.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 6),
+              DropdownButtonFormField<String>(
+                value: _selectedVendorId,
+                decoration: InputDecoration(
+                  hintText: 'Pilih Supplier',
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                  ),
+                ),
+                items: widget.provider.vendors.map<DropdownMenuItem<String>>((vendor) {
+                  return DropdownMenuItem<String>(
+                    value: vendor['id']?.toString(),
+                    child: Text(vendor['name']?.toString() ?? 'Supplier'),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  setState(() => _selectedVendorId = val);
+                },
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Pilih supplier terlebih dahulu';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // ── PRODUCT DROPDOWN ───────────────────────────────────────────
+              Text(
+                'Pilih Barang / Tabung',
+                style: AppTextStyles.bodyMedium.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 6),
+              DropdownButtonFormField<String>(
+                value: _selectedProductId,
+                decoration: InputDecoration(
+                  hintText: 'Pilih Produk',
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                  ),
+                ),
+                items: widget.provider.products.map<DropdownMenuItem<String>>((product) {
+                  return DropdownMenuItem<String>(
+                    value: product['id']?.toString(),
+                    child: Text(product['name']?.toString() ?? 'Produk'),
+                  );
+                }).toList(),
+                onChanged: _onProductSelected,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Pilih produk terlebih dahulu';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // ── QUANTITY AND UNIT COST SIDE-BY-SIDE ────────────────────────
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 4,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Jumlah (Unit)',
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        TextFormField(
+                          controller: _quantityController,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                          decoration: InputDecoration(
+                            hintText: '0',
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Wajib';
+                            }
+                            final val = int.tryParse(value);
+                            if (val == null || val <= 0) {
+                              return 'Min 1';
+                            }
+                            return null;
+                          },
+                        ),
+                      ],
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Form Stok Masuk',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 16),
-                // Dropdown using dynamic product names
-                DropdownButtonFormField<String>(
-                  decoration: InputDecoration(
-                    labelText: 'Pilih Tabung / Barang',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                  items: dropdownItems.map((name) {
-                    return DropdownMenuItem<String>(
-                      value: name,
-                      child: Text(name),
-                    );
-                  }).toList(),
-                  onChanged: (val) {},
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                          labelText: 'Jumlah (Unit)',
-                          hintText: '0',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 6,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Harga Beli Satuan',
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
+                        const SizedBox(height: 6),
+                        TextFormField(
+                          controller: _unitCostController,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [CurrencyInputFormatter()],
+                          decoration: InputDecoration(
+                            prefixText: 'Rp ',
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Wajib';
+                            }
+                            return null;
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // ── AMOUNT PAID ────────────────────────────────────────────────
+              Text(
+                'Jumlah Dibayar ke Supplier',
+                style: AppTextStyles.bodyMedium.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 6),
+              TextFormField(
+                controller: _amountPaidController,
+                keyboardType: TextInputType.number,
+                inputFormatters: [CurrencyInputFormatter()],
+                decoration: InputDecoration(
+                  prefixText: 'Rp ',
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  suffixIcon: _isAutoAmountPaid
+                      ? IconButton(
+                          icon: const Icon(Icons.edit_note, color: AppColors.primary),
+                          onPressed: () {
+                            setState(() => _isAutoAmountPaid = false);
+                          },
+                          tooltip: 'Ubah manual',
+                        )
+                      : IconButton(
+                          icon: const Icon(Icons.autorenew, color: AppColors.textSecondary),
+                          onPressed: () {
+                            setState(() {
+                              _isAutoAmountPaid = true;
+                              _amountPaidController.text = _formatCurrency(_totalCost.toInt());
+                            });
+                          },
+                          tooltip: 'Bayar Lunas (Otomatis)',
+                        ),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Wajib';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 20),
+
+              // ── TOTAL SUMMARY BOX ──────────────────────────────────────────
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Total Tagihan Beli',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary,
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextFormField(
-                        decoration: InputDecoration(
-                          labelText: 'Status Tujuan',
-                          hintText: 'Tersedia',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
+                    Text(
+                      'Rp $formattedTotal',
+                      style: AppTextStyles.priceText.copyWith(
+                        fontSize: 18,
+                        color: AppColors.primary,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  maxLines: 2,
-                  decoration: InputDecoration(
-                    labelText: 'Keterangan / Nama Supplier',
-                    hintText: 'Opsional',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              const SizedBox(height: 24),
+
+              // ── ACTION BUTTONS ─────────────────────────────────────────────
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0055FF),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                    onPressed: () {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Stok baru berhasil disimpan'),
-                          backgroundColor: Color(0xFF00A67E),
+                  onPressed: _isSubmitting ? null : _submitForm,
+                  child: _isSubmitting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        )
+                      : const Text(
+                          'Simpan Stok Masuk',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
-                      );
-                    },
-                    child: const Text(
-                      'Simpan Stok',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                    ),
-                  ),
                 ),
-                const SizedBox(height: 16),
-              ],
-            ),
+              ),
+              const SizedBox(height: 8),
+            ],
           ),
-        );
-      },
+        ),
+      ),
+    );
+  }
+}
+
+class CurrencyInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.selection.baseOffset == 0) {
+      return newValue;
+    }
+
+    final String cleanText = newValue.text.replaceAll('.', '');
+    final int? value = int.tryParse(cleanText);
+
+    if (value == null) {
+      return newValue;
+    }
+
+    final String formatted = _formatNumber(value);
+
+    return newValue.copyWith(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+
+  String _formatNumber(int amount) {
+    return amount.toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]}.',
     );
   }
 }

@@ -7,11 +7,13 @@ class WarehouseProvider extends ChangeNotifier {
 
   List<dynamic> _cylinders = [];
   List<dynamic> _products = [];
+  List<dynamic> _vendors = [];
   bool _isLoading = false;
   String? _error;
 
   List<dynamic> get cylinders => _cylinders;
   List<dynamic> get products => _products;
+  List<dynamic> get vendors => _vendors;
   bool get isLoading => _isLoading;
   String? get error => _error;
 
@@ -63,10 +65,12 @@ class WarehouseProvider extends ChangeNotifier {
       final futures = await Future.wait([
         _api.dio.get('/inventory/cylinders', queryParameters: {'limit': 100}),
         _api.dio.get('/inventory/products', queryParameters: {'limit': 100}),
+        _api.dio.get('/inventory/vendors', queryParameters: {'limit': 100}),
       ]);
 
       final cylinderRes = _api.handleResponse(futures[0]);
       final productRes = _api.handleResponse(futures[1]);
+      final vendorRes = _api.handleResponse(futures[2]);
 
       // Backend returns { items: [...], meta: {...} } for paginated endpoints
       if (cylinderRes is List) {
@@ -83,6 +87,14 @@ class WarehouseProvider extends ChangeNotifier {
         _products = List<dynamic>.from(productRes['items']);
       } else if (productRes is Map && productRes['data'] is List) {
         _products = List<dynamic>.from(productRes['data']);
+      }
+
+      if (vendorRes is List) {
+        _vendors = vendorRes;
+      } else if (vendorRes is Map && vendorRes['items'] is List) {
+        _vendors = List<dynamic>.from(vendorRes['items']);
+      } else if (vendorRes is Map && vendorRes['data'] is List) {
+        _vendors = List<dynamic>.from(vendorRes['data']);
       }
 
       _error = null;

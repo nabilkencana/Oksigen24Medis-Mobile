@@ -45,6 +45,14 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
   static const int _pageSize = 10;
   String _selectedSerialFilter = 'Semua';
 
+  String _mapOxygenTypeName(String name) {
+    final lowercase = name.toLowerCase();
+    if (lowercase == 'medical oxygen 99.5%' || lowercase == 'medical oxygen') {
+      return 'Tabung Oksigen';
+    }
+    return name;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -106,7 +114,8 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
               return otName.toLowerCase() == widget.title.toLowerCase();
             } else {
               // Cylinder match
-              final otName = c['oxygenType']?['name']?.toString() ?? 'Oksigen Medis';
+              final otNameRaw = c['oxygenType']?['name']?.toString() ?? 'Oksigen Medis';
+              final otName = _mapOxygenTypeName(otNameRaw);
               final size = c['size']?.toString() ?? '1m3';
               return '$otName ($size)'.toLowerCase() == widget.title.toLowerCase();
             }
@@ -137,7 +146,8 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
             final otName = c['oxygenType']?['name'] ?? 'Aksesoris Sewa';
             return otName.toLowerCase() == widget.title.toLowerCase();
           } else {
-            final otName = c['oxygenType']?['name'] ?? 'Oksigen Medis';
+            final otNameRaw = c['oxygenType']?['name'] ?? 'Oksigen Medis';
+            final otName = _mapOxygenTypeName(otNameRaw);
             final size = c['size'] ?? '1m3';
             return '$otName ($size)'.toLowerCase() == widget.title.toLowerCase();
           }
@@ -544,7 +554,8 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
         final otName = c['oxygenType']?['name'] ?? 'Aksesoris Sewa';
         return otName.toLowerCase() == widget.title.toLowerCase();
       } else {
-        final otName = c['oxygenType']?['name'] ?? 'Oksigen Medis';
+        final otNameRaw = c['oxygenType']?['name'] ?? 'Oksigen Medis';
+        final otName = _mapOxygenTypeName(otNameRaw);
         final size = c['size'] ?? '1m3';
         return '$otName ($size)'.toLowerCase() == widget.title.toLowerCase();
       }
