@@ -58,6 +58,12 @@ class _SalesFormScreenState extends State<SalesFormScreen> {
     super.dispose();
   }
 
+  bool _isCylinderProduct(dynamic p) {
+    final categoryName = p['category']?['name']?.toString().toLowerCase() ?? '';
+    final name = p['name']?.toString().toLowerCase() ?? '';
+    return categoryName == 'cylinder' || name.contains('tabung');
+  }
+
   void _onAmountChanged() {
     setState(() {});
   }
@@ -277,6 +283,20 @@ class _SalesFormScreenState extends State<SalesFormScreen> {
       return const Center(child: CircularProgressIndicator(color: AppColors.primary));
     }
 
+    final sellableProducts = provider.products.where((p) => !_isCylinderProduct(p)).toList();
+
+    if (sellableProducts.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 24.0),
+        child: Center(
+          child: Text(
+            'Tidak ada barang untuk dijual',
+            style: TextStyle(color: AppColors.textSecondary),
+          ),
+        ),
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
@@ -293,10 +313,10 @@ class _SalesFormScreenState extends State<SalesFormScreen> {
       child: ListView.separated(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        itemCount: provider.products.length,
+        itemCount: sellableProducts.length,
         separatorBuilder: (context, index) => const Divider(color: AppColors.border, height: 1),
         itemBuilder: (context, index) {
-          final p = provider.products[index];
+          final p = sellableProducts[index];
           final String id = p['id'].toString();
           final String name = p['name'] ?? 'Barang';
           final int stock = p['currentStock'] ?? 0;
@@ -1125,6 +1145,10 @@ class _SalesFormScreenState extends State<SalesFormScreen> {
     );
 
     if (prod != null) {
+      if (_isCylinderProduct(prod)) {
+        _showErrorSnackBar('Tabung oksigen hanya untuk disewa atau diisi ulang, bukan untuk dijual!');
+        return;
+      }
       final String id = prod['id'].toString();
       final int stock = prod['currentStock'] ?? 0;
       final int currentQty = _selectedQuantities[id] ?? 0;

@@ -251,3 +251,15 @@ Sebelum memulai, pastikan perangkat Anda telah terinstall:
   ```bash
   flutter build ipa --release
   ```
+
+---
+
+## 🛠️ Perbaikan & Peningkatan Terbaru
+
+Berikut adalah beberapa perbaikan dan peningkatan fitur yang baru saja diselesaikan pada sisi Client (Mobile):
+1. **Shortcut Popup Stok Masuk**: Menambahkan tombol shortcut langsung untuk **Tambah Vendor** dan **Tambah Barang** pada form Stok Masuk untuk efisiensi operasional.
+2. **Lokalisasi Bahasa Indonesia**: Menerjemahkan opsi kategori barang pada form "Tambah Barang" ke Bahasa Indonesia.
+3. **Penyaringan Penjualan Tabung**: Memastikan tabung oksigen (aset sirkulasi) tidak dapat diperjualbelikan (hanya untuk rental/refill) dengan memfilternya dari daftar produk penjualan dan menolak scan barcode tabung di halaman Penjualan.
+4. **Perbaikan Stok Kritis di Beranda**: Menyertakan detail jumlah stok kritis (format: `0 / 5`) pada kartu peringatan dashboard.
+5. **Beautify Dialog Ubah Status**: Mempercantik tampilan dialog "Ubah Status Unit Aset" dengan layout modern serta memperbaiki bug *layout overflow* (lubernya piksel) agar ramah di seluruh ukuran layar.
+6. **Optimasi & UI/UX Manual Payment**: Menambahkan icon action intuitif untuk beralih antara pembayaran otomatis (nominal pas) dengan input nominal manual.
