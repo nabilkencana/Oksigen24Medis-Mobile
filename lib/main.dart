@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:oksigen24medis_mobile2/features/splash/splash_screen.dart';
 import 'package:oksigen24medis_mobile2/firebase_options.dart';
 import 'package:oksigen24medis_mobile2/core/theme/app_theme.dart';
 import 'package:oksigen24medis_mobile2/core/state/auth_provider.dart';
@@ -63,26 +64,7 @@ class AuthGate extends StatelessWidget {
 
     // Show splash/spinner screen during initialization
     if (!authProvider.isInitialized) {
-      return const Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(
-                color: Color(0xFF0055FF),
-              ),
-              SizedBox(height: 16),
-              Text(
-                'Menginisialisasi aplikasi...',
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
+      return SplashScreen(onInitializationComplete: () {  },);
     }
 
     if (authProvider.isAuthenticated) {
@@ -92,3 +74,4 @@ class AuthGate extends StatelessWidget {
     }
   }
 }
+

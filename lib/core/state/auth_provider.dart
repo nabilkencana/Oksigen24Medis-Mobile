@@ -26,6 +26,7 @@ class AuthProvider extends ChangeNotifier {
   // Initialize and check auto-login
   Future<void> initialize() async {
     if (_isInitialized) return;
+    await Future.delayed(const Duration(seconds: 2));
     _isLoading = true;
     notifyListeners();
 
@@ -147,7 +148,7 @@ class AuthProvider extends ChangeNotifier {
         '/auth/profile',
         data: {
           'fullName': fullName,
-          'branch': ?branch,
+          if (branch != null) 'branch': branch,
         },
       );
       final data = _api.handleResponse(response);
