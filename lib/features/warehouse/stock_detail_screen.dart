@@ -764,10 +764,15 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                 actionIcon = Icons.assignment_return_rounded;
                 actionColor = const Color(0xFF00A67E);
                 actionBg = const Color(0xFFE6F7F0);
-              } else if (refType == 'REFILL') {
+              } else if (refType == 'REFILL' || refType == 'CUSTOMER_REFILL') {
                 actionTitle = 'Isi Ulang';
                 actionIcon = Icons.local_gas_station_rounded;
                 actionColor = const Color(0xFFF59E0B);
+                actionBg = const Color(0xFFFEF3C7);
+              } else if (refType == 'VENDOR_REFILL') {
+                actionTitle = 'Isi Ulang Vendor';
+                actionIcon = Icons.loop_rounded;
+                actionColor = const Color(0xFFD97706);
                 actionBg = const Color(0xFFFEF3C7);
               } else if (refType == 'SALE') {
                 actionTitle = 'Penjualan';
