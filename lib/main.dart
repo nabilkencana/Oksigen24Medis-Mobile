@@ -4,12 +4,17 @@ import 'package:oksigen24medis_mobile2/core/state/auth_provider.dart';
 import 'package:oksigen24medis_mobile2/core/state/dashboard_provider.dart';
 import 'package:oksigen24medis_mobile2/core/state/warehouse_provider.dart';
 import 'package:oksigen24medis_mobile2/core/state/transaction_provider.dart';
+import 'package:oksigen24medis_mobile2/core/state/notification_provider.dart';
+import 'package:oksigen24medis_mobile2/core/services/local_notification_service.dart';
 import 'package:oksigen24medis_mobile2/features/auth/login_screen.dart';
 import 'package:oksigen24medis_mobile2/features/dashboard/dashboard_screen.dart';
 import 'package:provider/provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Initialize local notification service early so the Android channel
+  // is registered before the first WebSocket event fires.
+  await LocalNotificationService.instance.initialize();
   runApp(const Oksigen24App());
 }
 
@@ -24,6 +29,7 @@ class Oksigen24App extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
         ChangeNotifierProvider(create: (_) => WarehouseProvider()),
         ChangeNotifierProvider(create: (_) => TransactionProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
       ],
       child: MaterialApp(
         title: 'Oksigen24 Medis',

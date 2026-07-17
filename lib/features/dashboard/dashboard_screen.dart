@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:oksigen24medis_mobile2/core/theme/app_theme.dart';
 import 'package:oksigen24medis_mobile2/core/state/auth_provider.dart';
 import 'package:oksigen24medis_mobile2/core/state/dashboard_provider.dart';
+import 'package:oksigen24medis_mobile2/core/state/notification_provider.dart';
 import 'package:oksigen24medis_mobile2/features/rental/rental_form_screen.dart';
 import 'package:oksigen24medis_mobile2/features/refill/refill_form_screen.dart';
 import 'package:oksigen24medis_mobile2/features/sales/sales_form_screen.dart';
@@ -21,13 +22,37 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
+  AppNotification? _activeToast;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<DashboardProvider>(context, listen: false).fetchSummary();
+      // Listen for incoming toast notifications
+      Provider.of<NotificationProvider>(context, listen: false)
+          .addListener(_checkForToast);
     });
+  }
+
+  @override
+  void dispose() {
+    // Safe disposal - provider may already be gone
+    try {
+      Provider.of<NotificationProvider>(context, listen: false)
+          .removeListener(_checkForToast);
+    } catch (_) {}
+    super.dispose();
+  }
+
+  void _checkForToast() {
+    final provider =
+        Provider.of<NotificationProvider>(context, listen: false);
+    final toast = provider.incomingToast;
+    if (toast != null && mounted) {
+      provider.clearToast();
+      setState(() => _activeToast = toast);
+    }
   }
 
   // Helper function to format currency manually
@@ -101,6 +126,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     final dashboardProvider = Provider.of<DashboardProvider>(context);
+    final notifProvider = Provider.of<NotificationProvider>(context);
+    final hasUnread = notifProvider.unreadCount > 0 ||
+        (dashboardProvider.summary?['lowStockCount'] as int? ?? 0) > 0;
 
     Widget currentBody;
     PreferredSizeWidget? currentAppBar;
@@ -110,7 +138,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         preferredSize: const Size.fromHeight(64),
         child: _buildAppBar(
           authProvider,
-          (dashboardProvider.summary?['lowStockCount'] as int? ?? 0) > 0,
+          hasUnread,
         ),
       );
       currentBody = RefreshIndicator(
@@ -129,10 +157,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
       currentBody = const ProfileScreen();
     }
 
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: currentAppBar,
-      body: currentBody,
+      body: Stack(
+        children: [
+          currentBody,
+          // In-app toast overlay
+          if (_activeToast != null)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: TransactionToast(
+                notification: _activeToast!,
+                onDismiss: () {
+                  if (mounted) setState(() => _activeToast = null);
+                },
+              ),
+            ),
+        ],
+      ),
       bottomNavigationBar: _buildBottomNav(),
     );
   }
@@ -177,9 +223,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           // Notification bell — 44px touch target
           SizedBox(
-            width: 44,
+            width: 48,
             height: 44,
             child: Stack(
+              clipBehavior: Clip.none,
               children: [
                 IconButton(
                   onPressed: () {
@@ -196,20 +243,38 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 if (hasUnread)
                   Positioned(
-                    right: 8,
-                    top: 8,
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: AppColors.error,
-                        shape: BoxShape.circle,
-                      ),
+                    right: 2,
+                    top: 5,
+                    child: Consumer<NotificationProvider>(
+                      builder: (_, np, child) {
+                        final count = np.unreadCount;
+                        return Container(
+                          constraints: const BoxConstraints(
+                              minWidth: 16, minHeight: 16),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 4, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: AppColors.error,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            count > 99 ? '99+' : count.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                              height: 1.2,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        );
+                      },
                     ),
                   ),
               ],
             ),
           ),
+
         ],
       ),
     );
