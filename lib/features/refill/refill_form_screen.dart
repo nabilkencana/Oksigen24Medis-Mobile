@@ -76,12 +76,25 @@ class _RefillFormScreenState extends State<RefillFormScreen> {
         stockBySize[size] = (stockBySize[size] ?? 0) + 1;
       }
     }
-    final List<String> sizes = stockBySize.keys.toList()
+
+    // Standard pre-defined sizes for refill
+    final Set<String> allSizes = {'0.3m3', '0.5m3', '1m3', '6m3'};
+    
+    // Add any other sizes found dynamically in the database
+    for (final cyl in warehouseProvider.actualCylinders) {
+      final size = cyl['size']?.toString();
+      if (size != null && size != 'Pcs' && size.toLowerCase() != 'unknown') {
+        allSizes.add(size);
+      }
+    }
+
+    final List<String> sizes = allSizes.toList()
       ..sort((a, b) {
         final numA = double.tryParse(a.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0;
         final numB = double.tryParse(b.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0;
         return numA.compareTo(numB);
       });
+
     for (final size in sizes) {
       _cylinderQty.putIfAbsent(size, () => 0);
     }
@@ -391,7 +404,7 @@ class _RefillFormScreenState extends State<RefillFormScreen> {
                 ),
               ),
               IconButton(
-                onPressed: qty < stock ? () => onChanged(qty + 1) : null,
+                onPressed: () => onChanged(qty + 1),
                 icon: const Icon(Icons.add_circle_outline, size: 24),
                 color: AppColors.primary,
               ),
