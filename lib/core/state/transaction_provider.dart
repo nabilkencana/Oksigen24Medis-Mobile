@@ -213,7 +213,6 @@ class TransactionProvider extends ChangeNotifier {
           'amountPaid': amountPaid,
           'paymentMethod': paymentMethod ?? 'TUNAI',
           'items': items,
-          'transactionType': transactionType,
         },
       );
       final data = _api.handleResponse(response);
