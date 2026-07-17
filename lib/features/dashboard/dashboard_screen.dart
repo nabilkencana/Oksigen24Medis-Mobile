@@ -524,6 +524,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 icon = Icons.loop_rounded;
                 iconBg = const Color(0xFFFFF3CD); // Warning warningLight
                 iconColor = const Color(0xFFB7791F);
+              } else if (refType == 'CUSTOMER_REFILL') {
+                title = 'Isi Ulang Pelanggan';
+                icon = Icons.local_gas_station_rounded;
+                iconBg = const Color(0xFFE0F2FE); // sky blue
+                iconColor = const Color(0xFF0369A1);
               } else if (refType == 'SALE') {
                 if (itemName.contains('refill') || itemName.contains('isi ulang') || itemName.contains('isi')) {
                   title = 'Isi Ulang Oksigen';
