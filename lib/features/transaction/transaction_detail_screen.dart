@@ -300,27 +300,31 @@ class TransactionDetailScreen extends StatelessWidget {
             return Padding(
               padding: const EdgeInsets.only(bottom: 12.0),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${item.qty}x ${item.name}',
-                        style: AppTextStyles.bodyMedium.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${item.qty}x ${item.name}',
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                          ),
+                          softWrap: true,
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '@ Rp ${_formatCurrency(item.unitPrice)}',
-                        style: AppTextStyles.caption.copyWith(
-                          color: AppColors.textSecondary,
+                        const SizedBox(height: 2),
+                        Text(
+                          '@ Rp ${_formatCurrency(item.unitPrice)}',
+                          style: AppTextStyles.caption.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   Text(
                     'Rp ${_formatCurrency(item.unitPrice * item.qty)}',
                     style: AppTextStyles.bodyMedium.copyWith(

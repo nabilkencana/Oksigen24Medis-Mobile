@@ -630,7 +630,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                     if (_qtyRegulatorRent > 0) {
                       receiptItems.add(
                         ReceiptItem(
-                          name: 'Sewa Regulator Medis',
+                          name: 'Sewa Regulator',
                           price: _priceRegulatorRent * _rentalDays,
                           quantity: _qtyRegulatorRent,
                           subtitle: 'Rent: $_rentalDays Hari',

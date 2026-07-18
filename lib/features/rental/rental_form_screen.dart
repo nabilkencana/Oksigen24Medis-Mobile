@@ -24,20 +24,56 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
 
   // Dynamic qty map: size -> quantity (e.g. '1m3' -> 2)
   final Map<String, int> _cylinderQty = {};
-  // Dynamic accessory qty map: name -> quantity (e.g. 'Sewa Regulator Medis' -> 1)
+  // Dynamic accessory qty map: name -> quantity (e.g. 'Sewa Regulator' -> 1)
   final Map<String, int> _accessoryQty = {};
 
-  late TextEditingController _tarifController;
-  late TextEditingController _depositController;
+  // Manual prices maps
+  final Map<String, int> _cylinderRentalPrices = {};
+  final Map<String, int> _cylinderRefillPrices = {};
+  final Map<String, int> _cylinderDepositPrices = {};
+  final Map<String, int> _accessoryRentalPrices = {};
+  final Map<String, int> _accessoryDepositPrices = {};
+  final Map<String, TextEditingController> _priceControllers = {};
+
+  TextEditingController _getPriceController(String key, int defaultValue) {
+    if (!_priceControllers.containsKey(key)) {
+      _priceControllers[key] = TextEditingController(
+          text: defaultValue == 0 ? '' : _formatCurrency(defaultValue));
+    }
+    return _priceControllers[key]!;
+  }
+
+  // Computed totals — derived from per-item price maps, not editable
+  int get _computedTarif {
+    int tarif = 0;
+    _cylinderQty.forEach((size, qty) {
+      if (qty > 0) {
+        tarif += (_cylinderRentalPrices[size] ?? 0) * qty;
+        if (_isFirstRentalContract) {
+          tarif += (_cylinderRefillPrices[size] ?? 0) * qty;
+        }
+      }
+    });
+    _accessoryQty.forEach((name, qty) {
+      if (qty > 0) tarif += (_accessoryRentalPrices[name] ?? 0) * qty;
+    });
+    return tarif;
+  }
+
+  int get _computedDeposit {
+    int deposit = 0;
+    _cylinderQty.forEach((size, qty) {
+      if (qty > 0) deposit += (_cylinderDepositPrices[size] ?? 0) * qty;
+    });
+    _accessoryQty.forEach((name, qty) {
+      if (qty > 0) deposit += (_accessoryDepositPrices[name] ?? 0) * qty;
+    });
+    return deposit;
+  }
 
   @override
   void initState() {
     super.initState();
-    _tarifController = TextEditingController(text: '0');
-    _depositController = TextEditingController(text: '0');
-    _tarifController.addListener(_onAmountChanged);
-    _depositController.addListener(_onAmountChanged);
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<TransactionProvider>(context, listen: false).fetchCustomers();
       Provider.of<WarehouseProvider>(context, listen: false).fetchInventory();
@@ -569,46 +605,20 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
 
   @override
   void dispose() {
-    _tarifController.removeListener(_onAmountChanged);
-    _depositController.removeListener(_onAmountChanged);
-    _tarifController.dispose();
-    _depositController.dispose();
     _searchController.dispose();
+    for (final c in _priceControllers.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 
-  void _onAmountChanged() {
-    setState(() {});
-  }
-
-  // Recalculate suggested tariff and deposit from cylinder quantities
+  // Refresh totals — prices are computed via getters, just trigger a rebuild
   void _updateSuggestedPrices(Map<String, int> stockBySize) {
-    // Price tiers per size (can be refined from backend pricePerUnit later)
-    const Map<String, int> tarifPerUnit = {
-      '0.3m3': 15000,
-      '0.5m3': 20000,
-      '1m3': 30000,
-      '6m3': 300000,
-    };
-    const Map<String, int> depositPerUnit = {
-      '0.3m3': 150000,
-      '0.5m3': 200000,
-      '1m3': 400000,
-      '6m3': 1500000,
-    };
-    const Map<String, int> refillPrices = {
-      '0.3m3': 30000,
-      '0.5m3': 40000,
-      '1m3': 50000,
-      '6m3': 165000,
-    };
-
-    final provider = Provider.of<WarehouseProvider>(context, listen: false);
-    final rentableAccessoriesList = provider.rentableAccessories;
-
     if (_isFirstRentalContract) {
+      final provider = Provider.of<WarehouseProvider>(context, listen: false);
+      final rentableAccessoriesList = provider.rentableAccessories;
       int totalCylQty = _cylinderQty.values.fold(0, (a, b) => a + b);
-      String regulatorName = 'Sewa Regulator Medis';
+      String regulatorName = 'Sewa Regulator';
       for (final acc in rentableAccessoriesList) {
         final name = acc['oxygenType']?['name']?.toString() ?? '';
         if (name.toLowerCase().contains('regulator')) {
@@ -618,34 +628,7 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
       }
       _accessoryQty[regulatorName] = totalCylQty;
     }
-
-    int tarif = 0;
-    int deposit = 0;
-    _cylinderQty.forEach((size, qty) {
-      tarif += (tarifPerUnit[size] ?? 30000) * qty;
-      deposit += (depositPerUnit[size] ?? 400000) * qty;
-      if (_isFirstRentalContract) {
-        tarif += (refillPrices[size] ?? 50000) * qty;
-      }
-    });
-
-    // Add accessories dynamic fees & deposits
-    _accessoryQty.forEach((name, qty) {
-      if (qty > 0) {
-        final matchingAcc = rentableAccessoriesList.firstWhere(
-          (c) => c['oxygenType']?['name'] == name,
-          orElse: () => null,
-        );
-        final double basePrice = double.tryParse(matchingAcc?['oxygenType']?['pricePerUnit']?.toString() ?? '75000') ?? 75000.0;
-        tarif += (basePrice.toInt() * qty);
-        
-        // Default deposit: 100,000 per unit for accessories
-        deposit += 100000 * qty;
-      }
-    });
-
-    _tarifController.text = _formatCurrency(tarif);
-    _depositController.text = _formatCurrency(deposit);
+    setState(() {});
   }
 
   int _calculateDays(DateTime date) {
@@ -733,7 +716,10 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
     final Map<String, int> stockByAccessory = {};
     for (final acc in warehouseProvider.rentableAccessories) {
       if (acc['status'] == 'AVAILABLE') {
-        final name = acc['oxygenType']?['name']?.toString() ?? 'Accessory';
+        String name = acc['oxygenType']?['name']?.toString() ?? 'Accessory';
+        if (name.toLowerCase().contains('regulator')) {
+          name = 'Sewa Regulator';
+        }
         stockByAccessory[name] = (stockByAccessory[name] ?? 0) + 1;
       }
     }
@@ -1087,12 +1073,71 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
 
       if (i > 0) rows.add(const Divider(color: AppColors.border, height: 1));
 
+      final cylLabel = (size == '6m3' || size.toLowerCase().contains('besar'))
+          ? 'Tabung Oksigen Besar ($size)'
+          : 'Tabung Oksigen Kecil ($size)';
+
       rows.add(
-        _buildItemStepper('Tabung Oksigen $size', stock, qty, (v) {
+        _buildItemStepper(cylLabel, stock, qty, (v) {
           setState(() => _cylinderQty[size] = v);
           _updateSuggestedPrices(stockBySize);
         }),
       );
+
+      if (qty > 0) {
+        _cylinderRentalPrices.putIfAbsent(size, () => 0);
+        _cylinderRefillPrices.putIfAbsent(size, () => 0);
+        _cylinderDepositPrices.putIfAbsent(size, () => 0);
+
+        rows.add(
+          Padding(
+            padding: const EdgeInsets.only(left: 12, right: 12, bottom: 12),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildSmallPriceField(
+                        label: 'Harga Sewa',
+                        controllerKey: 'cyl_rent_$size',
+                        defaultValue: _cylinderRentalPrices[size] ?? 0,
+                        onChanged: (val) {
+                          _cylinderRentalPrices[size] = val;
+                          _updateSuggestedPrices(stockBySize);
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildSmallPriceField(
+                        label: 'Uang Jaminan',
+                        controllerKey: 'cyl_dep_$size',
+                        defaultValue: _cylinderDepositPrices[size] ?? 0,
+                        onChanged: (val) {
+                          _cylinderDepositPrices[size] = val;
+                          _updateSuggestedPrices(stockBySize);
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                if (_isFirstRentalContract) ...[
+                  const SizedBox(height: 8),
+                  _buildSmallPriceField(
+                    label: 'Harga Isi Ulang',
+                    controllerKey: 'cyl_refill_$size',
+                    defaultValue: _cylinderRefillPrices[size] ?? 0,
+                    onChanged: (val) {
+                      _cylinderRefillPrices[size] = val;
+                      _updateSuggestedPrices(stockBySize);
+                    },
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      }
     }
 
     return Column(
@@ -1150,6 +1195,44 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
           _updateSuggestedPrices(stockBySize);
         }),
       );
+
+      if (qty > 0) {
+        _accessoryRentalPrices.putIfAbsent(name, () => 0);
+        _accessoryDepositPrices.putIfAbsent(name, () => 0);
+
+        rows.add(
+          Padding(
+            padding: const EdgeInsets.only(left: 12, right: 12, bottom: 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _buildSmallPriceField(
+                    label: 'Harga Sewa',
+                    controllerKey: 'acc_rent_$name',
+                    defaultValue: _accessoryRentalPrices[name] ?? 0,
+                    onChanged: (val) {
+                      _accessoryRentalPrices[name] = val;
+                      _updateSuggestedPrices(stockBySize);
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildSmallPriceField(
+                    label: 'Uang Jaminan',
+                    controllerKey: 'acc_dep_$name',
+                    defaultValue: _accessoryDepositPrices[name] ?? 0,
+                    onChanged: (val) {
+                      _accessoryDepositPrices[name] = val;
+                      _updateSuggestedPrices(stockBySize);
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
     }
 
     return Column(
@@ -1180,6 +1263,44 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
           child: Column(children: rows),
         ),
       ],
+    );
+  }
+
+  Widget _buildSmallPriceField({
+    required String label,
+    required String controllerKey,
+    required int defaultValue,
+    required ValueChanged<int> onChanged,
+  }) {
+    final controller = _getPriceController(controllerKey, defaultValue);
+    return TextFormField(
+      controller: controller,
+      keyboardType: TextInputType.number,
+      inputFormatters: [CurrencyInputFormatter()],
+      style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600),
+      decoration: InputDecoration(
+        labelText: label,
+        prefixText: 'Rp ',
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        labelStyle: AppTextStyles.caption,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(6),
+          borderSide: const BorderSide(color: AppColors.border),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(6),
+          borderSide: const BorderSide(color: AppColors.border),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(6),
+          borderSide: const BorderSide(color: AppColors.primary),
+        ),
+      ),
+      onChanged: (text) {
+        final val = int.tryParse(text.replaceAll('.', '')) ?? 0;
+        onChanged(val);
+      },
     );
   }
 
@@ -1252,8 +1373,37 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
     );
   }
 
-  // ── Billing Details Card ───────────────────────────────────────────────────
+  // ── Billing Summary Card (read-only, computed from per-item prices) ──────────
   Widget _buildBillingDetailsCard() {
+    final tarif = _computedTarif;
+    final deposit = _computedDeposit;
+    final total = tarif + deposit;
+
+    Widget summaryRow(String label, int value, {bool bold = false, Color? color}) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
+              style: AppTextStyles.bodyMedium.copyWith(
+                fontWeight: bold ? FontWeight.w700 : FontWeight.w400,
+                color: color ?? AppColors.textSecondary,
+              ),
+            ),
+            Text(
+              'Rp ${_formatCurrency(value)}',
+              style: AppTextStyles.bodyMedium.copyWith(
+                fontWeight: bold ? FontWeight.w700 : FontWeight.w600,
+                color: color ?? AppColors.textPrimary,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1268,58 +1418,21 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
         ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          TextFormField(
-            controller: _tarifController,
-            keyboardType: TextInputType.number,
-            style: AppTextStyles.bodyLarge.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-            inputFormatters: [CurrencyInputFormatter()],
-            decoration: InputDecoration(
-              labelText: 'Tarif Sewa Manual',
-              prefixText: 'Rp ',
-              labelStyle: AppTextStyles.bodyMedium,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: AppColors.border),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: AppColors.border),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: AppColors.primary),
-              ),
+          Text(
+            'RINGKASAN BIAYA',
+            style: AppTextStyles.caption.copyWith(
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF434656),
+              letterSpacing: 0.5,
             ),
           ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _depositController,
-            keyboardType: TextInputType.number,
-            style: AppTextStyles.bodyLarge.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-            inputFormatters: [CurrencyInputFormatter()],
-            decoration: InputDecoration(
-              labelText: 'Total Uang Jaminan (Deposit)',
-              prefixText: 'Rp ',
-              labelStyle: AppTextStyles.bodyMedium,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: AppColors.border),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: AppColors.border),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: AppColors.primary),
-              ),
-            ),
-          ),
+          const SizedBox(height: 12),
+          summaryRow('Total Biaya Sewa', tarif),
+          summaryRow('Total Uang Jaminan', deposit),
+          const Divider(height: 20, color: AppColors.border),
+          summaryRow('Total Tagihan', total, bold: true, color: AppColors.primary),
         ],
       ),
     );
@@ -1327,10 +1440,8 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
 
   // ── Bottom Checkout ────────────────────────────────────────────────────────
   Widget _buildBottomCheckout(WarehouseProvider provider) {
-    final int tarif =
-        int.tryParse(_tarifController.text.replaceAll('.', '')) ?? 0;
-    final int deposit =
-        int.tryParse(_depositController.text.replaceAll('.', '')) ?? 0;
+    final int tarif = _computedTarif;
+    final int deposit = _computedDeposit;
     final int totalPrice = tarif + deposit;
     final formattedPrice = _formatCurrency(totalPrice);
 
@@ -1435,7 +1546,13 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
                     _accessoryQty.forEach((name, qty) {
                       if (qty > 0) {
                         final picked = availableAccessories
-                            .where((c) => c['oxygenType']?['name'] == name)
+                            .where((c) {
+                              final accName = c['oxygenType']?['name']?.toString() ?? '';
+                              if (name == 'Sewa Regulator') {
+                                return accName.toLowerCase().contains('regulator');
+                              }
+                              return accName == name;
+                            })
                             .take(qty)
                             .map((c) => c['id'].toString())
                             .toList();
@@ -1461,35 +1578,25 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
 
                     // Build receipt items list
                     final List<ReceiptItem> receiptItems = [];
-                    const Map<String, int> tarifPerUnit = {
-                      '0.3m3': 15000,
-                      '0.5m3': 20000,
-                      '1m3': 30000,
-                      '6m3': 300000,
-                    };
-                    const Map<String, int> refillPrices = {
-                      '0.3m3': 30000,
-                      '0.5m3': 40000,
-                      '1m3': 50000,
-                      '6m3': 165000,
-                    };
-
                     _cylinderQty.forEach((size, qty) {
                       if (qty > 0) {
-                        final price = tarifPerUnit[size] ?? 30000;
+                        final cylLabel = (size == '6m3' || size.toLowerCase().contains('besar'))
+                            ? 'Tabung Oksigen Besar ($size)'
+                            : 'Tabung Oksigen Kecil ($size)';
+                        final price = _cylinderRentalPrices[size] ?? 0;
                         receiptItems.add(
                           ReceiptItem(
-                            name: 'Sewa Tabung Oksigen $size',
+                            name: 'Sewa $cylLabel',
                             price: price,
                             quantity: qty,
                             subtitle: 'Rent: $_rentalDays Hari',
                           ),
                         );
                         if (_isFirstRentalContract) {
-                          final refillPrice = refillPrices[size] ?? 50000;
+                          final refillPrice = _cylinderRefillPrices[size] ?? 0;
                           receiptItems.add(
                             ReceiptItem(
-                              name: 'Isi Ulang Oksigen $size',
+                              name: 'Isi Ulang Oksigen $cylLabel',
                               price: refillPrice,
                               quantity: qty,
                               subtitle: 'Kontrak Sewa Pertama',
@@ -1501,15 +1608,11 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
 
                     _accessoryQty.forEach((name, qty) {
                       if (qty > 0) {
-                        final matchingAcc = availableAccessories.firstWhere(
-                          (c) => c['oxygenType']?['name'] == name,
-                          orElse: () => null,
-                        );
-                        final double basePrice = double.tryParse(matchingAcc?['oxygenType']?['pricePerUnit']?.toString() ?? '75000') ?? 75000.0;
+                        final rentalPrice = _accessoryRentalPrices[name] ?? 0;
                         receiptItems.add(
                           ReceiptItem(
                             name: name,
-                            price: basePrice.toInt(),
+                            price: rentalPrice,
                             quantity: qty,
                             subtitle: 'Rent: $_rentalDays Hari',
                           ),

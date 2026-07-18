@@ -39,10 +39,13 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
     super.dispose();
   }
 
-  String _mapOxygenTypeName(String name) {
+  String _mapOxygenTypeName(String name, String size) {
     final lowercase = name.toLowerCase();
-    if (lowercase == 'medical oxygen 99.5%' || lowercase == 'medical oxygen') {
-      return 'Tabung Oksigen';
+    if (lowercase.contains('oxygen') || lowercase.contains('oksigen') || lowercase.contains('industrial')) {
+      if (size.toLowerCase().contains('6m3') || size.toLowerCase().contains('besar')) {
+        return 'Tabung Oksigen Besar';
+      }
+      return 'Tabung Oksigen Kecil';
     }
     return name;
   }
@@ -52,8 +55,8 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
     final Map<String, List<dynamic>> grouped = {};
     for (var cyl in list) {
       final String otNameRaw = cyl['oxygenType']?['name'] ?? 'Medical Oxygen';
-      final String otName = _mapOxygenTypeName(otNameRaw);
       final String size = cyl['size'] ?? '6m3';
+      final String otName = _mapOxygenTypeName(otNameRaw, size);
       final key = '$otName ($size)';
       grouped.putIfAbsent(key, () => []).add(cyl);
     }
@@ -82,11 +85,23 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
     }).toList();
   }
 
+  String _mapAccessoryName(String name) {
+    final lower = name.toLowerCase();
+    if (lower.contains('regulator')) {
+      return 'Sewa Regulator';
+    }
+    if (lower.contains('troli') || lower.contains('trolley')) {
+      return 'Sewa Troli';
+    }
+    return name;
+  }
+
   // Helper to group rentable accessories
   List<Map<String, dynamic>> _getGroupedRentables(List<dynamic> list) {
     final Map<String, List<dynamic>> grouped = {};
     for (var cyl in list) {
-      final String otName = cyl['oxygenType']?['name'] ?? 'Aksesoris Sewa';
+      final String otNameRaw = cyl['oxygenType']?['name'] ?? 'Aksesoris Sewa';
+      final String otName = _mapAccessoryName(otNameRaw);
       final key = otName;
       grouped.putIfAbsent(key, () => []).add(cyl);
     }
@@ -111,6 +126,26 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
     }).toList();
   }
 
+  String _mapProductName(String name) {
+    final lower = name.toLowerCase();
+    if (lower.contains('cannula') || lower.contains('nasal') || lower.contains('selang cannula')) {
+      return 'selang cannula';
+    }
+    if (lower.contains('regulator')) {
+      return 'regulator oksigen';
+    }
+    if (lower.contains('trolley') || lower.contains('troli') || lower.contains('troly')) {
+      return 'troly';
+    }
+    if (lower.contains('oxygen') || lower.contains('oksigen') || lower.contains('cylinder') || lower.contains('tabung')) {
+      if (lower.contains('6m3') || lower.contains('besar')) {
+        return 'tabung oksigen besar';
+      }
+      return 'tabung oksigen kecil';
+    }
+    return name;
+  }
+
   // List of all items fetched from backend (mapped to visual card format)
   List<Map<String, dynamic>> _buildMappedItems(WarehouseProvider provider) {
     final List<Map<String, dynamic>> list = [];
@@ -127,14 +162,23 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
 
     // Chip 3 or Chip 0
     if (_selectedChipIndex == 0 || _selectedChipIndex == 3) {
+      final Map<String, Map<String, dynamic>> groupedProds = {};
       for (var prod in provider.products) {
-        list.add({
-          'type': 'sellable',
-          'title': prod['name'] ?? 'Produk Medis',
-          'sku': prod['sku'] ?? 'SKU: PROD-001',
-          'tersedia': prod['currentStock'] ?? 0,
-        });
+        final title = _mapProductName(prod['name'] ?? 'Produk Medis');
+        final stock = (prod['currentStock'] as num?)?.toInt() ?? 0;
+        
+        if (groupedProds.containsKey(title)) {
+          groupedProds[title]!['tersedia'] = (groupedProds[title]!['tersedia'] as int) + stock;
+        } else {
+          groupedProds[title] = {
+            'type': 'sellable',
+            'title': title,
+            'sku': prod['sku'] ?? 'SKU: PROD-001',
+            'tersedia': stock,
+          };
+        }
       }
+      list.addAll(groupedProds.values);
     }
 
     // Apply search filter

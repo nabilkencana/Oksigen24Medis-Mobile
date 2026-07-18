@@ -35,14 +35,14 @@ class _SalesFormScreenState extends State<SalesFormScreen> {
       Provider.of<WarehouseProvider>(context, listen: false).fetchInventory().then((_) {
         // Initialize default mock quantities for user ease of checkout matching mockup
         final provider = Provider.of<WarehouseProvider>(context, listen: false);
-        for (var p in provider.products) {
-          final String id = p['id'].toString();
-          if (p['name'].toString().contains('Trolley') || p['name'].toString().contains('Troli')) {
-            _selectedQuantities[id] = 1;
-          } else if (p['name'].toString().contains('Cannula') || p['name'].toString().contains('Nasal')) {
-            _selectedQuantities[id] = 2;
+        final consolidated = _getConsolidatedProducts(provider.products);
+        for (final cp in consolidated) {
+          if (cp.normalizedName == 'troly') {
+            _selectedQuantities[cp.normalizedName] = 1;
+          } else if (cp.normalizedName == 'selang cannula') {
+            _selectedQuantities[cp.normalizedName] = 2;
           } else {
-            _selectedQuantities[id] = 0;
+            _selectedQuantities[cp.normalizedName] = 0;
           }
         }
         _updateSuggestedPrices(provider.products);
@@ -62,18 +62,68 @@ class _SalesFormScreenState extends State<SalesFormScreen> {
     return false;
   }
 
+  String _normalizeProductName(String name) {
+    final lower = name.toLowerCase();
+    if (lower.contains('cannula') || lower.contains('nasal') || lower.contains('selang cannula')) {
+      return 'selang cannula';
+    }
+    if (lower.contains('regulator')) {
+      return 'regulator oksigen';
+    }
+    if (lower.contains('trolley') || lower.contains('troli') || lower.contains('troly')) {
+      return 'troly';
+    }
+    if (lower.contains('oxygen') || lower.contains('oksigen') || lower.contains('cylinder') || lower.contains('tabung')) {
+      if (lower.contains('6m3') || lower.contains('besar')) {
+        return 'tabung oksigen besar';
+      }
+      return 'tabung oksigen kecil';
+    }
+    return name;
+  }
+
+  List<_ConsolidatedProduct> _getConsolidatedProducts(List<dynamic> products) {
+    final Map<String, List<dynamic>> groups = {};
+    for (final p in products) {
+      final name = p['name']?.toString() ?? 'Barang';
+      final normName = _normalizeProductName(name);
+      groups.putIfAbsent(normName, () => []).add(p);
+    }
+
+    return groups.entries.map((entry) {
+      final normName = entry.key;
+      final originalList = entry.value;
+      final totalStock = originalList.fold<int>(0, (sum, p) => sum + ((p['currentStock'] as num?)?.toInt() ?? 0));
+      final price = originalList.isNotEmpty
+          ? (double.tryParse(originalList[0]['price']?.toString() ?? '0') ?? 0.0)
+          : 0.0;
+      return _ConsolidatedProduct(
+        normalizedName: normName,
+        totalStock: totalStock,
+        price: price,
+        originalProducts: originalList,
+      );
+    }).toList();
+  }
+
   void _onAmountChanged() {
     setState(() {});
   }
 
   // Recalculates default suggested prices based on current quantities
   void _updateSuggestedPrices(List<dynamic> products) {
+    final consolidated = _getConsolidatedProducts(products);
     double total = 0;
-    _selectedQuantities.forEach((prodId, qty) {
-      final prod = products.firstWhere((p) => p['id'] == prodId, orElse: () => null);
-      if (prod != null) {
-        final double price = double.tryParse(prod['price']?.toString() ?? '0') ?? 0;
-        total += price * qty;
+    _selectedQuantities.forEach((normName, qty) {
+      _ConsolidatedProduct? cp;
+      for (final c in consolidated) {
+        if (c.normalizedName == normName) {
+          cp = c;
+          break;
+        }
+      }
+      if (cp != null) {
+        total += cp.price * qty;
       }
     });
 
@@ -225,9 +275,9 @@ class _SalesFormScreenState extends State<SalesFormScreen> {
       return const Center(child: CircularProgressIndicator(color: AppColors.primary));
     }
 
-    final sellableProducts = provider.products.where((p) => !_isCylinderProduct(p)).toList();
+    final consolidated = _getConsolidatedProducts(provider.products);
 
-    if (sellableProducts.isEmpty) {
+    if (consolidated.isEmpty) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 24.0),
         child: Center(
@@ -255,15 +305,14 @@ class _SalesFormScreenState extends State<SalesFormScreen> {
       child: ListView.separated(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        itemCount: sellableProducts.length,
+        itemCount: consolidated.length,
         separatorBuilder: (context, index) => const Divider(color: AppColors.border, height: 1),
         itemBuilder: (context, index) {
-          final p = sellableProducts[index];
-          final String id = p['id'].toString();
-          final String name = p['name'] ?? 'Barang';
-          final int stock = p['currentStock'] ?? 0;
-          final double price = double.tryParse(p['price']?.toString() ?? '0') ?? 0.0;
-          final int qty = _selectedQuantities[id] ?? 0;
+          final cp = consolidated[index];
+          final String name = cp.normalizedName;
+          final int stock = cp.totalStock;
+          final double price = cp.price;
+          final int qty = _selectedQuantities[name] ?? 0;
 
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 12.0),
@@ -294,7 +343,7 @@ class _SalesFormScreenState extends State<SalesFormScreen> {
                     IconButton(
                       onPressed: qty > 0
                           ? () {
-                              setState(() => _selectedQuantities[id] = qty - 1);
+                              setState(() => _selectedQuantities[name] = qty - 1);
                               _updateSuggestedPrices(provider.products);
                             }
                           : null,
@@ -308,7 +357,7 @@ class _SalesFormScreenState extends State<SalesFormScreen> {
                     IconButton(
                       onPressed: qty < stock
                           ? () {
-                              setState(() => _selectedQuantities[id] = qty + 1);
+                              setState(() => _selectedQuantities[name] = qty + 1);
                               _updateSuggestedPrices(provider.products);
                             }
                           : null,
@@ -472,16 +521,33 @@ class _SalesFormScreenState extends State<SalesFormScreen> {
                     final List<Map<String, dynamic>> checkoutItems = [];
                     final List<ReceiptItem> receiptItems = [];
 
-                    _selectedQuantities.forEach((prodId, qty) {
+                    final consolidated = _getConsolidatedProducts(provider.products);
+
+                    _selectedQuantities.forEach((normName, qty) {
                       if (qty > 0) {
-                        final prod = provider.products.firstWhere((p) => p['id'] == prodId);
-                        checkoutItems.add({
-                          'productId': prodId,
-                          'quantity': qty,
-                        });
+                        final cp = consolidated.firstWhere((c) => c.normalizedName == normName);
+                        
+                        // Distribute the quantity among the original products in the group
+                        int remainingQty = qty;
+                        for (final prod in cp.originalProducts) {
+                          if (remainingQty <= 0) break;
+                          final prodStock = ((prod['currentStock'] as num?)?.toInt() ?? 0);
+                          final take = remainingQty <= prodStock ? remainingQty : prodStock;
+                          
+                          if (take > 0 || cp.originalProducts.length == 1 || (prod == cp.originalProducts.last && remainingQty > 0)) {
+                            final actualTake = take > 0 ? take : remainingQty;
+                            checkoutItems.add({
+                              'productId': prod['id'].toString(),
+                              'quantity': actualTake,
+                            });
+                            remainingQty -= actualTake;
+                          }
+                        }
+
+                        // Add to receipt display item
                         receiptItems.add(ReceiptItem(
-                          name: prod['name'] ?? 'Alat Medis',
-                          price: double.tryParse(prod['price']?.toString() ?? '0')?.round() ?? 0,
+                          name: normName,
+                          price: cp.price.round(),
                           quantity: qty,
                         ));
                       }
@@ -1133,18 +1199,28 @@ class _SalesFormScreenState extends State<SalesFormScreen> {
         _showErrorSnackBar('Tabung oksigen hanya untuk disewa atau diisi ulang, bukan untuk dijual!');
         return;
       }
-      final String id = prod['id'].toString();
-      final int stock = prod['currentStock'] ?? 0;
-      final int currentQty = _selectedQuantities[id] ?? 0;
+      final String normName = _normalizeProductName(prod['name']?.toString() ?? '');
+      final consolidated = _getConsolidatedProducts(provider.products);
+      _ConsolidatedProduct? cp;
+      for (final c in consolidated) {
+        if (c.normalizedName == normName) {
+          cp = c;
+          break;
+        }
+      }
+      if (cp != null) {
+        final int stock = cp.totalStock;
+        final int currentQty = _selectedQuantities[normName] ?? 0;
 
-      if (currentQty >= stock) {
-        _showErrorSnackBar('Stok produk ${prod['name']} sudah mencapai batas maksimum!');
-      } else {
-        setState(() {
-          _selectedQuantities[id] = currentQty + 1;
-        });
-        _updateSuggestedPrices(provider.products);
-        _showSuccessSnackBar('Berhasil menambahkan ${prod['name']}');
+        if (currentQty >= stock) {
+          _showErrorSnackBar('Stok produk $normName sudah mencapai batas maksimum!');
+        } else {
+          setState(() {
+            _selectedQuantities[normName] = currentQty + 1;
+          });
+          _updateSuggestedPrices(provider.products);
+          _showSuccessSnackBar('Berhasil menambahkan $normName');
+        }
       }
       return;
     }
@@ -1176,4 +1252,18 @@ class _SalesFormScreenState extends State<SalesFormScreen> {
       SnackBar(content: Text(msg), backgroundColor: const Color(0xFF00A67E)),
     );
   }
+}
+
+class _ConsolidatedProduct {
+  final String normalizedName;
+  final int totalStock;
+  final double price;
+  final List<dynamic> originalProducts;
+
+  _ConsolidatedProduct({
+    required this.normalizedName,
+    required this.totalStock,
+    required this.price,
+    required this.originalProducts,
+  });
 }

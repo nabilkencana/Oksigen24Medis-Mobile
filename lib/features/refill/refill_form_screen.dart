@@ -277,8 +277,11 @@ class _RefillFormScreenState extends State<RefillFormScreen> {
       final stock = stockBySize[size] ?? 0;
       final qty = _cylinderQty[size] ?? 0;
       if (i > 0) rows.add(const Divider(color: AppColors.border, height: 1));
+      final cylLabel = (size == '6m3' || size.toLowerCase().contains('besar'))
+          ? 'Tabung Oksigen Besar ($size)'
+          : 'Tabung Oksigen Kecil ($size)';
       rows.add(
-        _buildItemStepper('Tabung Oksigen $size', stock, qty, (v) {
+        _buildItemStepper(cylLabel, stock, qty, (v) {
           setState(() => _cylinderQty[size] = v);
           _updateSuggestedPrices();
         }),
@@ -570,8 +573,11 @@ class _RefillFormScreenState extends State<RefillFormScreen> {
                           'unitPrice': pricePerUnit,
                         });
                         // Untuk struk: tampilkan per ukuran
+                        final rcLabel = (size == '6m3' || size.toLowerCase().contains('besar'))
+                            ? 'Tabung Oksigen Besar ($size)'
+                            : 'Tabung Oksigen Kecil ($size)';
                         receiptItems.add(ReceiptItem(
-                          name: 'Refill Tabung Oksigen $size',
+                          name: 'Refill $rcLabel',
                           price: pricePerUnit * qty,
                           quantity: qty,
                         ));
@@ -1229,7 +1235,8 @@ class _RefillFormScreenState extends State<RefillFormScreen> {
             _cylinderQty[size] = currentQty + 1;
           });
           _updateSuggestedPrices();
-          _showSuccessSnackBar('Berhasil menambahkan isi ulang: Tabung Oksigen $size');
+          final snackLabel = (size == '6m3' || size.toLowerCase().contains('besar')) ? 'Tabung Oksigen Besar ($size)' : 'Tabung Oksigen Kecil ($size)';
+          _showSuccessSnackBar('Berhasil menambahkan isi ulang: $snackLabel');
         }
       } else {
         _showErrorSnackBar('Tabung dengan ukuran $size tidak ditemukan di form!');
@@ -1250,7 +1257,8 @@ class _RefillFormScreenState extends State<RefillFormScreen> {
             _cylinderQty[size] = currentQty + 1;
           });
           _updateSuggestedPrices();
-          _showSuccessSnackBar('Berhasil menambahkan isi ulang: Tabung Oksigen $size');
+          final snackLabel2 = (size == '6m3' || size.toLowerCase().contains('besar')) ? 'Tabung Oksigen Besar ($size)' : 'Tabung Oksigen Kecil ($size)';
+          _showSuccessSnackBar('Berhasil menambahkan isi ulang: $snackLabel2');
         }
       } else {
         _showErrorSnackBar('Tabung dengan ukuran $size tidak ditemukan di form!');
