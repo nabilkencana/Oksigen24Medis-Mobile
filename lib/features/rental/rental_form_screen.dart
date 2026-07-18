@@ -20,6 +20,7 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
   DateTime _returnDate = DateTime.now().add(const Duration(days: 7));
   final TextEditingController _searchController = TextEditingController();
   String? _selectedCustomerId;
+  bool _isFirstRentalContract = false;
 
   // Dynamic qty map: size -> quantity (e.g. '1m3' -> 2)
   final Map<String, int> _cylinderQty = {};
@@ -595,17 +596,40 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
       '1m3': 400000,
       '6m3': 1500000,
     };
+    const Map<String, int> refillPrices = {
+      '0.3m3': 30000,
+      '0.5m3': 40000,
+      '1m3': 50000,
+      '6m3': 150000,
+    };
+
+    final provider = Provider.of<WarehouseProvider>(context, listen: false);
+    final rentableAccessoriesList = provider.rentableAccessories;
+
+    if (_isFirstRentalContract) {
+      int totalCylQty = _cylinderQty.values.fold(0, (a, b) => a + b);
+      String regulatorName = 'Sewa Regulator Medis';
+      for (final acc in rentableAccessoriesList) {
+        final name = acc['oxygenType']?['name']?.toString() ?? '';
+        if (name.toLowerCase().contains('regulator')) {
+          regulatorName = name;
+          break;
+        }
+      }
+      _accessoryQty[regulatorName] = totalCylQty;
+    }
 
     int tarif = 0;
     int deposit = 0;
     _cylinderQty.forEach((size, qty) {
       tarif += (tarifPerUnit[size] ?? 30000) * qty;
       deposit += (depositPerUnit[size] ?? 400000) * qty;
+      if (_isFirstRentalContract) {
+        tarif += (refillPrices[size] ?? 50000) * qty;
+      }
     });
 
     // Add accessories dynamic fees & deposits
-    final provider = Provider.of<WarehouseProvider>(context, listen: false);
-    final rentableAccessoriesList = provider.rentableAccessories;
     _accessoryQty.forEach((name, qty) {
       if (qty > 0) {
         final matchingAcc = rentableAccessoriesList.firstWhere(
@@ -763,6 +787,11 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
                 children: [
                   // ── COMPONENT 1: PELANGGAN & TANGGAL ───────────────────────
                   _buildCustomerAndDurationCard(txProvider),
+
+                  const SizedBox(height: 16),
+
+                  // ── COMPONENT 1B: KONTRAK SEWA PERTAMA ─────────────────────
+                  _buildFirstRentalContractCard(warehouseProvider),
 
                   const SizedBox(height: 24),
 
@@ -981,6 +1010,62 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildFirstRentalContractCard(WarehouseProvider warehouseProvider) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A000000),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: SwitchListTile.adaptive(
+        title: Row(
+          children: [
+            Icon(
+              Icons.assignment_turned_in_outlined,
+              color: _isFirstRentalContract ? AppColors.primary : AppColors.textSecondary,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Kontrak Sewa Pertama',
+                style: AppTextStyles.bodyLarge.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: _isFirstRentalContract ? AppColors.primary : AppColors.textPrimary,
+                ),
+              ),
+            ),
+          ],
+        ),
+        subtitle: Text(
+          'Aktifkan jika ini penyewaan pertama untuk menyertakan sewa tabung, regulator, dan isi ulang gas.',
+          style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+        ),
+        activeThumbColor: AppColors.primary,
+        value: _isFirstRentalContract,
+        onChanged: (bool value) {
+          setState(() {
+            _isFirstRentalContract = value;
+          });
+          // Recalculate Suggested Prices
+          final Map<String, int> stockBySize = {};
+          for (final cyl in warehouseProvider.actualCylinders) {
+            if (cyl['status'] == 'AVAILABLE') {
+              final size = cyl['size']?.toString() ?? 'Unknown';
+              stockBySize[size] = (stockBySize[size] ?? 0) + 1;
+            }
+          }
+          _updateSuggestedPrices(stockBySize);
+        },
       ),
     );
   }
@@ -1382,6 +1467,12 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
                       '1m3': 30000,
                       '6m3': 80000,
                     };
+                    const Map<String, int> refillPrices = {
+                      '0.3m3': 30000,
+                      '0.5m3': 40000,
+                      '1m3': 50000,
+                      '6m3': 150000,
+                    };
 
                     _cylinderQty.forEach((size, qty) {
                       if (qty > 0) {
@@ -1394,6 +1485,17 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
                             subtitle: 'Rent: $_rentalDays Hari',
                           ),
                         );
+                        if (_isFirstRentalContract) {
+                          final refillPrice = refillPrices[size] ?? 50000;
+                          receiptItems.add(
+                            ReceiptItem(
+                              name: 'Isi Ulang Oksigen $size',
+                              price: refillPrice,
+                              quantity: qty,
+                              subtitle: 'Kontrak Sewa Pertama',
+                            ),
+                          );
+                        }
                       }
                     });
 

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:oksigen24medis_mobile2/core/theme/app_theme.dart';
 import 'package:oksigen24medis_mobile2/core/state/transaction_provider.dart';
@@ -425,16 +426,41 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
             final original = tx['original'];
 
             if (type == 'Sewa Tabung') {
-              final List<dynamic> items = original['items'] ?? [];
-              for (var it in items) {
-                final cyl = it['cylinder'] ?? {};
-                final size = cyl['size'] ?? '6m3';
-                final otName = cyl['oxygenType']?['name'] ?? 'Tabung Oksigen';
-                detailItems.add(DetailItem(
-                  name: '$otName ($size)',
-                  qty: 1,
-                  unitPrice: double.tryParse(it['price']?.toString() ?? '75000')?.round() ?? 75000,
-                ));
+              bool parsedFromNotes = false;
+              final notesStr = original['notes']?.toString() ?? '';
+              if (notesStr.trim().startsWith('[') && notesStr.trim().endsWith(']')) {
+                try {
+                  final List<dynamic> decoded = jsonDecode(notesStr);
+                  for (var item in decoded) {
+                    final name = item['name']?.toString() ?? 'Item';
+                    final int price = int.tryParse(item['price']?.toString() ?? '0') ?? 0;
+                    final int quantity = int.tryParse(item['quantity']?.toString() ?? '1') ?? 1;
+                    if (!name.toLowerCase().contains('deposit')) {
+                      detailItems.add(DetailItem(
+                        name: name,
+                        qty: quantity,
+                        unitPrice: price,
+                      ));
+                    }
+                  }
+                  parsedFromNotes = true;
+                } catch (e) {
+                  debugPrint('Error parsing notes JSON: $e');
+                }
+              }
+
+              if (!parsedFromNotes) {
+                final List<dynamic> items = original['items'] ?? [];
+                for (var it in items) {
+                  final cyl = it['cylinder'] ?? {};
+                  final size = cyl['size'] ?? '6m3';
+                  final otName = cyl['oxygenType']?['name'] ?? 'Tabung Oksigen';
+                  detailItems.add(DetailItem(
+                    name: '$otName ($size)',
+                    qty: 1,
+                    unitPrice: double.tryParse(it['price']?.toString() ?? '75000')?.round() ?? 75000,
+                  ));
+                }
               }
             } else {
               // Penjualan or Isi Ulang

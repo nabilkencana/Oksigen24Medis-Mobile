@@ -165,6 +165,7 @@ class TransactionProvider extends ChangeNotifier {
     required double amountPaid,
     required List<String> cylinderIds,
     String? notes,
+    double? totalAmount,
   }) async {
     _isLoading = true;
     notifyListeners();
@@ -178,6 +179,7 @@ class TransactionProvider extends ChangeNotifier {
           'amountPaid': amountPaid,
           'cylinderIds': cylinderIds,
           'notes': notes,
+          'totalAmount': totalAmount,
         },
       );
       final data = _api.handleResponse(response);

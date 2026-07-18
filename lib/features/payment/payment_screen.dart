@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:oksigen24medis_mobile2/core/theme/app_theme.dart';
@@ -110,13 +111,29 @@ class _PaymentScreenState extends State<PaymentScreen> {
       String dynamicInvoiceNo = widget.invoiceNo;
 
       if (widget.type == 'RENTAL') {
+        String notesPayload = 'Customer checkout from mobile client';
+        if (widget.receiptItems != null && widget.receiptItems!.isNotEmpty) {
+          try {
+            final mapped = widget.receiptItems!.map((item) => {
+              'name': item.name,
+              'price': item.price,
+              'quantity': item.quantity,
+              'subtitle': item.subtitle,
+            }).toList();
+            notesPayload = jsonEncode(mapped);
+          } catch (e) {
+            debugPrint('Error serializing receiptItems: $e');
+          }
+        }
+
         // Submit Rental API
         final result = await provider.submitRental(
           customerId: widget.customerId ?? 'cust-uuid',
           dueDate: widget.dueDate ?? DateTime.now().add(const Duration(days: 7)),
           amountPaid: _selectedMethod == 'Tunai' ? _receivedAmount.toDouble() : widget.totalPrice.toDouble(),
           cylinderIds: widget.cylinderIds ?? [],
-          notes: 'Customer checkout from mobile client',
+          notes: notesPayload,
+          totalAmount: widget.totalPrice.toDouble(),
         );
         if (result['invoiceNo'] != null) {
           dynamicInvoiceNo = result['invoiceNo'];
