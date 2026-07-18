@@ -1704,7 +1704,7 @@ class _ScanningPulseState extends State<_ScanningPulse>
                 height: 60 + 100 * _controller.value,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0xFF0055FF).withOpacity(0.2 * (1.0 - _controller.value)),
+                  color: const Color(0xFF0055FF).withValues(alpha: 0.2 * (1.0 - _controller.value)),
                 ),
               ),
               // Middle pulse circle
@@ -1713,7 +1713,7 @@ class _ScanningPulseState extends State<_ScanningPulse>
                 height: 60 + 50 * _controller.value,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0xFF0055FF).withOpacity(0.4 * (1.0 - _controller.value)),
+                  color: const Color(0xFF0055FF).withValues(alpha: 0.4 * (1.0 - _controller.value)),
                 ),
               ),
               // Glowing center icon

@@ -1174,7 +1174,7 @@ class _AddStockBottomSheetState extends State<_AddStockBottomSheet> {
                 children: [
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: _selectedVendorId,
+                      initialValue: _selectedVendorId,
                       decoration: InputDecoration(
                         hintText: 'Pilih Supplier',
                         contentPadding: const EdgeInsets.symmetric(
@@ -1240,7 +1240,7 @@ class _AddStockBottomSheetState extends State<_AddStockBottomSheet> {
                 children: [
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: _selectedProductId,
+                      initialValue: _selectedProductId,
                       decoration: InputDecoration(
                         hintText: 'Pilih Produk',
                         contentPadding: const EdgeInsets.symmetric(
@@ -1910,7 +1910,7 @@ class _AddStockBottomSheetState extends State<_AddStockBottomSheet> {
                               ),
                             )
                           : DropdownButtonFormField<String>(
-                              value: selectedCategoryId,
+                              initialValue: selectedCategoryId,
                               decoration: InputDecoration(
                                 contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 12,
@@ -2196,10 +2196,12 @@ class _AddStockBottomSheetState extends State<_AddStockBottomSheet> {
       );
       final handled = api.handleResponse(res);
       if (handled is List) return handled;
-      if (handled is Map && handled['items'] is List)
+      if (handled is Map && handled['items'] is List) {
         return List<dynamic>.from(handled['items']);
-      if (handled is Map && handled['data'] is List)
+      }
+      if (handled is Map && handled['data'] is List) {
         return List<dynamic>.from(handled['data']);
+      }
       return [];
     } catch (e) {
       debugPrint('Error fetching categories: $e');

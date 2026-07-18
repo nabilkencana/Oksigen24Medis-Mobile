@@ -624,7 +624,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                     ),
                     const SizedBox(height: 4),
                     DropdownButtonFormField<String>(
-                      value: selectedSerial,
+                      initialValue: selectedSerial,
                       isExpanded: true,
                       decoration: InputDecoration(
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -661,7 +661,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                     ),
                     const SizedBox(height: 4),
                     DropdownButtonFormField<String>(
-                      value: selectedStatus,
+                      initialValue: selectedStatus,
                       isExpanded: true,
                       decoration: InputDecoration(
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),

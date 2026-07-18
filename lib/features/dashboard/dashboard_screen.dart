@@ -536,7 +536,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: AppColors.error.withOpacity(0.1),
+                color: AppColors.error.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
@@ -583,7 +583,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.error.withOpacity(0.2)),
+                border: Border.all(color: AppColors.error.withValues(alpha: 0.2)),
                 boxShadow: const [
                   BoxShadow(
                     color: Color(0x05000000),
@@ -597,7 +597,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.error.withOpacity(0.1),
+                      color: AppColors.error.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -773,7 +773,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         decoration: BoxDecoration(
                           color: const Color(0xFFFEF2F2),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.error.withOpacity(0.2)),
+                          border: Border.all(color: AppColors.error.withValues(alpha: 0.2)),
                         ),
                         child: Row(
                           children: [
