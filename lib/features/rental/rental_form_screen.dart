@@ -636,7 +636,7 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
           (c) => c['oxygenType']?['name'] == name,
           orElse: () => null,
         );
-        final double basePrice = double.tryParse(matchingAcc?['oxygenType']?['pricePerUnit']?.toString() ?? '25000') ?? 25000.0;
+        final double basePrice = double.tryParse(matchingAcc?['oxygenType']?['pricePerUnit']?.toString() ?? '75000') ?? 75000.0;
         tarif += (basePrice.toInt() * qty);
         
         // Default deposit: 100,000 per unit for accessories
@@ -1505,7 +1505,7 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
                           (c) => c['oxygenType']?['name'] == name,
                           orElse: () => null,
                         );
-                        final double basePrice = double.tryParse(matchingAcc?['oxygenType']?['pricePerUnit']?.toString() ?? '25000') ?? 25000.0;
+                        final double basePrice = double.tryParse(matchingAcc?['oxygenType']?['pricePerUnit']?.toString() ?? '75000') ?? 75000.0;
                         receiptItems.add(
                           ReceiptItem(
                             name: name,
