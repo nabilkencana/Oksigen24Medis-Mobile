@@ -54,7 +54,7 @@ class _RefillFormScreenState extends State<RefillFormScreen> {
       '0.3m3': 30000,
       '0.5m3': 40000,
       '1m3': 50000,
-      '6m3': 150000,
+      '6m3': 165000,
     };
     int total = 0;
     _cylinderQty.forEach((size, qty) {

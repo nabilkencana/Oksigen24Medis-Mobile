@@ -588,7 +588,7 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
       '0.3m3': 15000,
       '0.5m3': 20000,
       '1m3': 30000,
-      '6m3': 80000,
+      '6m3': 300000,
     };
     const Map<String, int> depositPerUnit = {
       '0.3m3': 150000,
@@ -600,7 +600,7 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
       '0.3m3': 30000,
       '0.5m3': 40000,
       '1m3': 50000,
-      '6m3': 150000,
+      '6m3': 165000,
     };
 
     final provider = Provider.of<WarehouseProvider>(context, listen: false);
@@ -1465,13 +1465,13 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
                       '0.3m3': 15000,
                       '0.5m3': 20000,
                       '1m3': 30000,
-                      '6m3': 80000,
+                      '6m3': 300000,
                     };
                     const Map<String, int> refillPrices = {
                       '0.3m3': 30000,
                       '0.5m3': 40000,
                       '1m3': 50000,
-                      '6m3': 150000,
+                      '6m3': 165000,
                     };
 
                     _cylinderQty.forEach((size, qty) {

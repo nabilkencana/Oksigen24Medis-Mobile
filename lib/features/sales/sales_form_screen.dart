@@ -59,9 +59,7 @@ class _SalesFormScreenState extends State<SalesFormScreen> {
   }
 
   bool _isCylinderProduct(dynamic p) {
-    final categoryName = p['category']?['name']?.toString().toLowerCase() ?? '';
-    final name = p['name']?.toString().toLowerCase() ?? '';
-    return categoryName == 'cylinder' || name.contains('tabung');
+    return false;
   }
 
   void _onAmountChanged() {
