@@ -171,7 +171,7 @@ class _SalesFormScreenState extends State<SalesFormScreen> {
     );
   }
 
-  // ── Customer Card ──────────────────────────────────────────────────────────
+  // ── Customer Card (Opsional) ────────────────────────────────────────────────
   Widget _buildCustomerCard(TransactionProvider tx) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -189,86 +189,30 @@ class _SalesFormScreenState extends State<SalesFormScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Pilih Pelanggan (Opsional)',
-                style: AppTextStyles.caption.copyWith(
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              GestureDetector(
-                onTap: () => _showAddCustomerSheet(context),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.person_add_alt_1_rounded,
-                      size: 16,
-                      color: AppColors.primary,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Pelanggan Baru',
-                      style: AppTextStyles.caption.copyWith(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          Text(
+            'Nama Pelanggan (Opsional)',
+            style: AppTextStyles.caption.copyWith(
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w500,
+            ),
           ),
           const SizedBox(height: 8),
-          GestureDetector(
-            onTap: () => _showCustomerPicker(context, tx),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
-              decoration: BoxDecoration(
-                color: AppColors.background,
+          TextFormField(
+            controller: _searchController,
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w600,
+            ),
+            decoration: InputDecoration(
+              hintText: 'Ketik nama pelanggan (kosongkan jika jual putus)...',
+              prefixIcon: const Icon(Icons.person_outline,
+                  size: 18, color: AppColors.textSecondary),
+              filled: true,
+              fillColor: AppColors.background,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.person_outline,
-                      size: 18, color: AppColors.textSecondary),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _searchController.text.isNotEmpty
-                          ? _searchController.text
-                          : 'Pilih Pelanggan...',
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        color: _searchController.text.isNotEmpty
-                            ? AppColors.textPrimary
-                            : AppColors.textSecondary,
-                      ),
-                    ),
-                  ),
-                  if (_selectedCustomerId != null)
-                    GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _selectedCustomerId = null;
-                          _searchController.clear();
-                        });
-                      },
-                      child: const Icon(Icons.close,
-                          color: AppColors.textSecondary, size: 18),
-                    )
-                  else if (tx.isLoading)
-                    const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: AppColors.primary),
-                    )
-                  else
-                    const Icon(Icons.expand_more,
-                        color: AppColors.textSecondary, size: 20),
-                ],
+                borderSide: BorderSide.none,
               ),
             ),
           ),
@@ -515,7 +459,7 @@ class _SalesFormScreenState extends State<SalesFormScreen> {
               const SizedBox(width: 24),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: () {
+                  onPressed: () async {
                     if (salesTotal <= 0) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -547,6 +491,48 @@ class _SalesFormScreenState extends State<SalesFormScreen> {
 
                     final totalQty = checkoutItems.fold<int>(0, (sum, i) => sum + int.parse(i['quantity'].toString()));
 
+                    // Resolve or create customer in background if name is typed
+                    String? finalCustomerId = _selectedCustomerId;
+                    final nameEntered = _searchController.text.trim();
+                    if (nameEntered.isNotEmpty && nameEntered.toLowerCase() != 'jual putus') {
+                      final txProvider = Provider.of<TransactionProvider>(context, listen: false);
+
+                      showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (context) => const Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                      );
+
+                      try {
+                        final matchingCust = txProvider.customers.firstWhere(
+                          (c) => c['name']?.toString().toLowerCase() == nameEntered.toLowerCase(),
+                          orElse: () => null,
+                        );
+                        if (matchingCust != null) {
+                          finalCustomerId = matchingCust['id']?.toString();
+                        } else {
+                          final newCust = await txProvider.createCustomer(name: nameEntered);
+                          finalCustomerId = newCust['id']?.toString();
+                        }
+                      } catch (e) {
+                        if (!mounted) return;
+                        Navigator.of(context).pop();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Gagal mencantumkan pelanggan: $e'),
+                            backgroundColor: Colors.redAccent,
+                          ),
+                        );
+                        return;
+                      }
+
+                      if (!mounted) return;
+                      Navigator.of(context).pop();
+                    }
+
+                    if (!mounted) return;
                     Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (context) => PaymentScreen(
@@ -554,11 +540,11 @@ class _SalesFormScreenState extends State<SalesFormScreen> {
                           selectedSize: 'Barang',
                           tarif: salesTotal,
                           deposit: 0,
-                          customerName: _searchController.text.isNotEmpty ? _searchController.text : 'Jual Putus',
+                          customerName: nameEntered.isNotEmpty ? nameEntered : 'Jual Putus',
                           invoiceNo: 'SAL-TEMP',
                           receiptItems: receiptItems,
                           type: 'SALE',
-                          customerId: _selectedCustomerId,
+                          customerId: finalCustomerId,
                           items: checkoutItems,
                         ),
                       ),

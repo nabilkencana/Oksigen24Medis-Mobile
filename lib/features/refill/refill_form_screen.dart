@@ -203,75 +203,29 @@ class _RefillFormScreenState extends State<RefillFormScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Pilih Pelanggan (Wajib)',
-                style: AppTextStyles.caption.copyWith(
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              GestureDetector(
-                onTap: () => _showAddCustomerSheet(context),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.person_add_alt_1_rounded,
-                      size: 16,
-                      color: AppColors.primary,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Pelanggan Baru',
-                      style: AppTextStyles.caption.copyWith(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          Text(
+            'Nama Pelanggan (Wajib)',
+            style: AppTextStyles.caption.copyWith(
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w500,
+            ),
           ),
-          const SizedBox(height: 8),
-          GestureDetector(
-            onTap: () => _showCustomerPicker(context, tx),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
-              decoration: BoxDecoration(
-                color: AppColors.background,
+          TextFormField(
+            controller: _searchController,
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w600,
+            ),
+            decoration: InputDecoration(
+              hintText: 'Ketik nama pelanggan...',
+              prefixIcon: const Icon(Icons.person_outline,
+                  size: 18, color: AppColors.textSecondary),
+              filled: true,
+              fillColor: AppColors.background,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.person_outline,
-                      size: 18, color: AppColors.textSecondary),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _searchController.text.isNotEmpty
-                          ? _searchController.text
-                          : 'Pilih Pelanggan...',
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        color: _searchController.text.isNotEmpty
-                            ? AppColors.textPrimary
-                            : AppColors.textSecondary,
-                      ),
-                    ),
-                  ),
-                  if (tx.isLoading)
-                    const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: AppColors.primary),
-                    )
-                  else
-                    const Icon(Icons.expand_more,
-                        color: AppColors.textSecondary, size: 20),
-                ],
+                borderSide: BorderSide.none,
               ),
             ),
           ),
@@ -521,11 +475,12 @@ class _RefillFormScreenState extends State<RefillFormScreen> {
               const SizedBox(width: 24),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: () {
-                    if (_selectedCustomerId == null) {
+                  onPressed: () async {
+                    final nameEntered = _searchController.text.trim();
+                    if (nameEntered.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Pilih pelanggan terlebih dahulu'),
+                          content: Text('Nama pelanggan tidak boleh kosong'),
                           backgroundColor: Colors.redAccent,
                         ),
                       );
@@ -561,6 +516,44 @@ class _RefillFormScreenState extends State<RefillFormScreen> {
                       );
                       return;
                     }
+
+                    // Resolve or create customer in background
+                    String? finalCustomerId = _selectedCustomerId;
+                    final txProvider = Provider.of<TransactionProvider>(context, listen: false);
+
+                    showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (context) => const Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                    );
+
+                    try {
+                      final matchingCust = txProvider.customers.firstWhere(
+                        (c) => c['name']?.toString().toLowerCase() == nameEntered.toLowerCase(),
+                        orElse: () => null,
+                      );
+                      if (matchingCust != null) {
+                        finalCustomerId = matchingCust['id']?.toString();
+                      } else {
+                        final newCust = await txProvider.createCustomer(name: nameEntered);
+                        finalCustomerId = newCust['id']?.toString();
+                      }
+                    } catch (e) {
+                      if (!mounted) return;
+                      Navigator.of(context).pop();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Gagal mencantumkan pelanggan: $e'),
+                          backgroundColor: Colors.redAccent,
+                        ),
+                      );
+                      return;
+                    }
+
+                    if (!mounted) return;
+                    Navigator.of(context).pop();
 
                     // Build per-size items list for the API
                     // Buat items per ukuran tabung
@@ -601,11 +594,11 @@ class _RefillFormScreenState extends State<RefillFormScreen> {
                           selectedSize: 'Refill',
                           tarif: tarif,
                           deposit: 0,
-                          customerName: _searchController.text,
+                          customerName: nameEntered,
                           invoiceNo: 'RFL-TEMP',
                           receiptItems: receiptItems,
                           type: 'REFILL',
-                          customerId: _selectedCustomerId,
+                          customerId: finalCustomerId,
                           items: items,
                         ),
                       ),
