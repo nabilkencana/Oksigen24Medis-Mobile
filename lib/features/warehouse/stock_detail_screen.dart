@@ -8,7 +8,6 @@ import 'package:oksigen24medis_mobile2/features/refill/refill_form_screen.dart';
 import 'package:oksigen24medis_mobile2/features/rental/rental_form_screen.dart';
 import 'dart:ui' as ui;
 import 'package:flutter/rendering.dart';
-import 'dart:typed_data';
 import 'package:printing/printing.dart';
 
 class StockDetailScreen extends StatefulWidget {

@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:oksigen24medis_mobile2/core/theme/app_theme.dart'; // Aktifkan jika diperlukan
+// Aktifkan jika diperlukan
 
 class SplashScreen extends StatefulWidget {
   final VoidCallback onInitializationComplete;
