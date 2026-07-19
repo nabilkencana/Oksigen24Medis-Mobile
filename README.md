@@ -263,3 +263,8 @@ Berikut adalah beberapa perbaikan dan peningkatan fitur yang baru saja diselesai
 4. **Perbaikan Stok Kritis di Beranda**: Menyertakan detail jumlah stok kritis (format: `0 / 5`) pada kartu peringatan dashboard.
 5. **Beautify Dialog Ubah Status**: Mempercantik tampilan dialog "Ubah Status Unit Aset" dengan layout modern serta memperbaiki bug *layout overflow* (lubernya piksel) agar ramah di seluruh ukuran layar.
 6. **Optimasi & UI/UX Manual Payment**: Menambahkan icon action intuitif untuk beralih antara pembayaran otomatis (nominal pas) dengan input nominal manual.
+7. **Pecah Detail KPI Sewa Aktif**: Memisahkan metrik "Sewa Aktif" di Beranda menjadi kategori detail: Tabung Besar, Tabung Kecil, dan Regulator guna memantau sebaran fisik unit secara lebih presisi.
+8. **Interaksi Pencarian & Pemilihan Pelanggan**: Menyediakan komponen dialog pencarian pelanggan (`Customer Picker`) langsung pada form Sewa, Isi Ulang, dan Penjualan untuk mempercepat proses input.
+9. **Standardisasi Penamaan & Harga Dinamis**: Menstandarkan pelabelan ukuran unit tabung oksigen di seluruh aplikasi dan menerapkan perhitungan estimasi harga rental/refill yang bersifat reaktif dan computed.
+10. **Pengembangan Menu Keamanan & Bantuan**: Memperluas layar profil dengan Bottom Sheet interaktif untuk Keamanan Akun, Pusat Bantuan, serta perbaikan validasi keamanan token FCM.
+11. **Keamanan Asinkronisasi (BuildContext Safety)**: Memperbaiki penggunaan `BuildContext` di celah asinkron (`async gaps`) pada form penjualan guna menjamin kestabilan UI ketika data di-submit.
