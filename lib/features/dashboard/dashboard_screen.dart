@@ -328,7 +328,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
 
     final summary = provider.summary ?? {};
-    final activeRentals = summary['activeRentals'] ?? 0;
+    final rentedBigCylinders = summary['rentedBigCylinders'] ?? 0;
+    final rentedSmallCylinders = summary['rentedSmallCylinders'] ?? 0;
+    final rentedRegulators = summary['rentedRegulators'] ?? 0;
     final vendorCylinders = summary['vendorCylinders'] ?? 0;
     final lowStockCount = summary['lowStockCount'] ?? 0;
     final todayRevenue = summary['todayRevenue'] ?? 0;
@@ -343,11 +345,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           // KPI Grid Cards
           _buildKpiSection(
-            activeRentals,
-            vendorCylinders,
-            lowStockCount,
-            todayRevenue,
-            lowStockItems,
+            rentedBigCylinders: rentedBigCylinders,
+            rentedSmallCylinders: rentedSmallCylinders,
+            rentedRegulators: rentedRegulators,
+            vendorCylinders: vendorCylinders,
+            lowStockCount: lowStockCount,
+            todayRevenue: todayRevenue,
+            lowStockItems: lowStockItems,
           ),
           const SizedBox(height: 24.0),
 
@@ -367,20 +371,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   // ── KPI horizontal scroll ─────────────────────────────────────────────────
-  Widget _buildKpiSection(
-    int activeRentals,
-    int vendorCylinders,
-    int lowStockCount,
-    num todayRevenue,
-    List<dynamic> lowStockItems,
-  ) {
+  Widget _buildKpiSection({
+    required int rentedBigCylinders,
+    required int rentedSmallCylinders,
+    required int rentedRegulators,
+    required int vendorCylinders,
+    required int lowStockCount,
+    required num todayRevenue,
+    required List<dynamic> lowStockItems,
+  }) {
     final kpis = [
       _KpiData(
-        label: 'Tabung Disewa',
-        value: '$activeRentals',
+        label: 'Tabung Besar',
+        value: '$rentedBigCylinders',
         hasBadge: vendorCylinders > 0,
         badgeValue: '$vendorCylinders Di Vendor',
-        subLabel: 'Hingga hari ini',
+        subLabel: 'Sedang disewa',
+        accentBorder: false,
+        valueColor: AppColors.textPrimary,
+      ),
+      _KpiData(
+        label: 'Tabung Kecil',
+        value: '$rentedSmallCylinders',
+        hasBadge: false,
+        badgeValue: '',
+        subLabel: 'Sedang disewa',
+        accentBorder: false,
+        valueColor: AppColors.textPrimary,
+      ),
+      _KpiData(
+        label: 'Regulator',
+        value: '$rentedRegulators',
+        hasBadge: false,
+        badgeValue: '',
+        subLabel: 'Sedang disewa',
         accentBorder: false,
         valueColor: AppColors.textPrimary,
       ),
