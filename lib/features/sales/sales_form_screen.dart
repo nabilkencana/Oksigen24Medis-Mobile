@@ -31,11 +31,14 @@ class _SalesFormScreenState extends State<SalesFormScreen> {
     _tarifController.addListener(_onAmountChanged);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<TransactionProvider>(context, listen: false).fetchCustomers();
-      Provider.of<WarehouseProvider>(context, listen: false).fetchInventory().then((_) {
-        // Initialize default mock quantities for user ease of checkout matching mockup
-        final provider = Provider.of<WarehouseProvider>(context, listen: false);
-        final consolidated = _getConsolidatedProducts(provider.products);
+      if (!mounted) return;
+      final txProvider = Provider.of<TransactionProvider>(context, listen: false);
+      final warehouseProvider = Provider.of<WarehouseProvider>(context, listen: false);
+
+      txProvider.fetchCustomers();
+      warehouseProvider.fetchInventory().then((_) {
+        if (!mounted) return;
+        final consolidated = _getConsolidatedProducts(warehouseProvider.products);
         for (final cp in consolidated) {
           if (cp.normalizedName == 'troly') {
             _selectedQuantities[cp.normalizedName] = 1;
@@ -45,7 +48,7 @@ class _SalesFormScreenState extends State<SalesFormScreen> {
             _selectedQuantities[cp.normalizedName] = 0;
           }
         }
-        _updateSuggestedPrices(provider.products);
+        _updateSuggestedPrices(warehouseProvider.products);
       });
     });
   }
@@ -255,6 +258,11 @@ class _SalesFormScreenState extends State<SalesFormScreen> {
               hintText: 'Ketik nama pelanggan (kosongkan jika jual putus)...',
               prefixIcon: const Icon(Icons.person_outline,
                   size: 18, color: AppColors.textSecondary),
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.contacts_outlined,
+                    size: 20, color: AppColors.primary),
+                onPressed: () => _showCustomerPicker(context, tx),
+              ),
               filled: true,
               fillColor: AppColors.background,
               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),

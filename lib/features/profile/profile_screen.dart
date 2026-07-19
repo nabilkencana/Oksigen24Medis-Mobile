@@ -134,10 +134,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             const SizedBox(height: 24),
 
+            // Group 2: Keamanan Akun
+            _buildSettingGroup(
+              'Keamanan Akun',
+              [
+                _buildSettingItem(
+                  Icons.lock_outline,
+                  'Ubah Password',
+                  'Ganti password login Anda',
+                  onTap: () {
+                    _showSecurityBottomSheet(context, auth, 'Password');
+                  },
+                ),
+                _buildSettingItem(
+                  Icons.pin_outlined,
+                  'PIN Otorisasi',
+                  'Ganti PIN transaksi / otorisasi',
+                  onTap: () {
+                    _showSecurityBottomSheet(context, auth, 'PIN Otorisasi');
+                  },
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 24),
+
             // Group 3: Bantuan
             _buildSettingGroup(
               'Bantuan',
               [
+                _buildSettingItem(
+                  Icons.help_outline,
+                  'Pusat Bantuan',
+                  'Hubungi support & customer service',
+                  onTap: () {
+                    _showHelpCenterBottomSheet(context);
+                  },
+                ),
                 _buildSettingItem(
                   Icons.info_outline,
                   'Tentang Aplikasi',

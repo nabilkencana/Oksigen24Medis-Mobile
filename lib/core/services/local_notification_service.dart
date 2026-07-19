@@ -99,7 +99,7 @@ class LocalNotificationService {
     _fcm.onTokenRefresh.listen((token) {
       _fcmToken = token;
       debugPrint('[FCM] Token refreshed: $token');
-      // TODO: Send updated token to backend
+      // Sync refreshed token to backend when push notification API endpoint is ready
     });
 
     // Foreground FCM messages — show as local notification

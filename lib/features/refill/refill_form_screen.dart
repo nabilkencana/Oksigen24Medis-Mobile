@@ -220,6 +220,11 @@ class _RefillFormScreenState extends State<RefillFormScreen> {
               hintText: 'Ketik nama pelanggan...',
               prefixIcon: const Icon(Icons.person_outline,
                   size: 18, color: AppColors.textSecondary),
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.contacts_outlined,
+                    size: 20, color: AppColors.primary),
+                onPressed: () => _showCustomerPicker(context, tx),
+              ),
               filled: true,
               fillColor: AppColors.background,
               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
