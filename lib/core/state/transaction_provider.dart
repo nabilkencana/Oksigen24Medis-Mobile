@@ -357,6 +357,41 @@ class TransactionProvider extends ChangeNotifier {
     }
   }
 
+  // Delete a Transaction by ID and type
+  Future<void> deleteTransaction({
+    required String transactionId,
+    required String transactionType, // 'rental', 'sale', 'refill'
+  }) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final String endpoint;
+      switch (transactionType) {
+        case 'rental':
+          endpoint = '/transactions/rentals/$transactionId';
+          break;
+        case 'sale':
+          endpoint = '/transactions/sales/$transactionId';
+          break;
+        case 'refill':
+        default:
+          endpoint = '/transactions/refills/customer/$transactionId';
+          break;
+      }
+      await _api.dio.delete(endpoint);
+      await fetchTransactions(silent: true);
+    } catch (e) {
+      if (e is DioException) {
+        throw _api.handleDioError(e);
+      }
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   // Submit Refill Receive from Vendor
   Future<Map<String, dynamic>> submitRefillReceive({
     required List<String> cylinderIds,

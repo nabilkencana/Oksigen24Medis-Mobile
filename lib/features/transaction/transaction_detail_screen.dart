@@ -5,10 +5,14 @@ import 'package:oksigen24medis_mobile2/features/rental/rental_extension_form_scr
 import 'package:oksigen24medis_mobile2/core/services/printer_service.dart';
 import 'package:oksigen24medis_mobile2/core/services/pdf_service.dart';
 import 'package:oksigen24medis_mobile2/features/payment/receipt_item.dart';
+import 'package:oksigen24medis_mobile2/core/state/transaction_provider.dart';
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
+import 'package:provider/provider.dart';
 
 class TransactionDetailScreen extends StatelessWidget {
   final String? rentalId;
+  final String? transactionId;   // ID transaksi untuk keperluan hapus
+  final String? transactionType; // 'rental' | 'sale' | 'refill'
   final String invoiceNo;
   final String customerName;
   final String customerType;
@@ -24,6 +28,8 @@ class TransactionDetailScreen extends StatelessWidget {
   const TransactionDetailScreen({
     super.key,
     this.rentalId,
+    this.transactionId,
+    this.transactionType,
     this.invoiceNo = 'INV-20260714-01',
     this.customerName = 'RS. Medika Utama',
     this.customerType = 'Penyewaan Instansi',
@@ -117,6 +123,16 @@ class TransactionDetailScreen extends StatelessWidget {
               );
             },
           ),
+          // Tombol Hapus Transaksi
+          if (transactionId != null && transactionType != null)
+            IconButton(
+              icon: const Icon(
+                Icons.delete_outline_rounded,
+                color: AppColors.error,
+              ),
+              tooltip: 'Hapus Transaksi',
+              onPressed: () => _confirmDelete(context),
+            ),
           const SizedBox(width: 8),
         ],
         bottom: PreferredSize(
@@ -1076,7 +1092,113 @@ class TransactionDetailScreen extends StatelessWidget {
       },
     );
   }
-}
+
+  // ── Confirm Delete Dialog ──────────────────────────────────────────────────
+  void _confirmDelete(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+        contentPadding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.error.withAlpha(20),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.delete_outline_rounded,
+                color: AppColors.error,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              'Hapus Transaksi',
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+        content: RichText(
+          text: TextSpan(
+            style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+            children: [
+              const TextSpan(text: 'Apakah Anda yakin ingin menghapus transaksi '),
+              TextSpan(
+                text: invoiceNo,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const TextSpan(text: '? Tindakan ini tidak dapat dibatalkan.'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogCtx).pop(),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.textSecondary,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            ),
+            child: const Text(
+              'Batal',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.of(dialogCtx).pop(); // tutup dialog dulu
+
+              final provider = Provider.of<TransactionProvider>(context, listen: false);
+              try {
+                await provider.deleteTransaction(
+                  transactionId: transactionId!,
+                  transactionType: transactionType!,
+                );
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Transaksi berhasil dihapus'),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
+                Navigator.of(context).pop(); // kembali ke halaman sebelumnya
+              } catch (e) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Gagal menghapus: ${e.toString()}'),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              elevation: 0,
+            ),
+            child: const Text(
+              'Hapus',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+} // end TransactionDetailScreen
 
 class DetailItem {
   final String name;

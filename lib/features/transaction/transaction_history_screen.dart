@@ -536,6 +536,12 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
               MaterialPageRoute(
                 builder: (context) => TransactionDetailScreen(
                   rentalId: type == 'Sewa Tabung' ? original['id']?.toString() : null,
+                  transactionId: tx['id']?.toString(),
+                  transactionType: type == 'Sewa Tabung'
+                      ? 'rental'
+                      : type == 'Isi Ulang'
+                          ? 'refill'
+                          : 'sale',
                   invoiceNo: tx['invoiceNo'],
                   customerName: tx['customerName'],
                   customerType: type, // tampilkan tipe transaksi di detail
