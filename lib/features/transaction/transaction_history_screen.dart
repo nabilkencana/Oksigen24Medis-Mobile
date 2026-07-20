@@ -88,6 +88,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
         'type': 'Sewa Tabung',
         'status': r['status'] ?? 'RENTING',
         'totalAmount': double.tryParse(r['amountPaid']?.toString() ?? r['totalAmount']?.toString() ?? '0') ?? 0.0,
+        'paymentMethod': 'Transfer Bank', // rental tidak punya field paymentMethod
         'original': r,
       });
     }
@@ -103,6 +104,18 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
       } else {
         type = 'Penjualan';
       }
+      // Konversi paymentMethod dari backend (TUNAI/TRANSFER/QRIS) ke label display
+      final rawMethod = s['paymentMethod']?.toString().toUpperCase() ?? 'TUNAI';
+      final String displayMethod;
+      if (rawMethod == 'TUNAI') {
+        displayMethod = 'Tunai';
+      } else if (rawMethod == 'TRANSFER') {
+        displayMethod = 'Transfer Bank';
+      } else if (rawMethod == 'QRIS') {
+        displayMethod = 'QRIS';
+      } else {
+        displayMethod = rawMethod;
+      }
       list.add({
         'id': s['id'],
         'invoiceNo': invoice,
@@ -111,12 +124,25 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
         'type': type,
         'status': 'SELESAI', // immediate sale is complete
         'totalAmount': double.tryParse(s['amountPaid']?.toString() ?? s['totalAmount']?.toString() ?? '0') ?? 0.0,
+        'paymentMethod': displayMethod,
         'original': s,
       });
     }
 
     // Map refills
     for (var r in provider.customerRefills) {
+      // Konversi paymentMethod dari backend (TUNAI/TRANSFER/QRIS) ke label display
+      final rawMethod = r['paymentMethod']?.toString().toUpperCase() ?? 'TUNAI';
+      final String displayMethod;
+      if (rawMethod == 'TUNAI') {
+        displayMethod = 'Tunai';
+      } else if (rawMethod == 'TRANSFER') {
+        displayMethod = 'Transfer Bank';
+      } else if (rawMethod == 'QRIS') {
+        displayMethod = 'QRIS';
+      } else {
+        displayMethod = rawMethod;
+      }
       list.add({
         'id': r['id'],
         'invoiceNo': r['invoiceNo'] ?? 'INV-REFILL',
@@ -125,6 +151,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
         'type': 'Isi Ulang',
         'status': 'SELESAI',
         'totalAmount': double.tryParse(r['amountPaid']?.toString() ?? r['totalAmount']?.toString() ?? '0') ?? 0.0,
+        'paymentMethod': displayMethod,
         'original': r,
       });
     }
@@ -547,6 +574,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                   customerType: type, // tampilkan tipe transaksi di detail
                   dateStr: dateStr,
                   status: status,
+                  method: tx['paymentMethod'] ?? 'Transfer Bank', // ← FIX: teruskan paymentMethod dari data
                   totalTagihan: tx['totalAmount'].round(),
                   deposit: calculatedDeposit,
                   sewaDays: sewaDaysVal,

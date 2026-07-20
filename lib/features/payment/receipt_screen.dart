@@ -182,7 +182,7 @@ class ReceiptScreen extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'Kasir: ${cashierName ?? "Budi Santoso"}',
+                  'Kasir: ${cashierName ?? "Kasir"}',
                   style: AppTextStyles.caption.copyWith(
                     color: AppColors.textSecondary,
                   ),
@@ -435,7 +435,7 @@ class ReceiptScreen extends StatelessWidget {
                   final success = await printer.printReceipt(
                     invoiceNo: invoiceNo,
                     customerName: customerName,
-                    cashierName: cashierName ?? 'Budi Santoso',
+                    cashierName: cashierName ?? 'Kasir',
                     receiptItems: itemsToPrint,
                     paymentMethod: paymentMethod,
                     totalTagihan: totalTagihan,
@@ -533,7 +533,7 @@ class ReceiptScreen extends StatelessWidget {
                 await pdfService.shareInvoicePdf(
                   invoiceNo: invoiceNo,
                   customerName: customerName,
-                  cashierName: cashierName ?? 'Budi Santoso',
+                  cashierName: cashierName ?? 'Kasir',
                   receiptItems: itemsToPrint,
                   paymentMethod: paymentMethod,
                   totalTagihan: totalTagihan,

@@ -6,6 +6,7 @@ import 'package:oksigen24medis_mobile2/core/services/printer_service.dart';
 import 'package:oksigen24medis_mobile2/core/services/pdf_service.dart';
 import 'package:oksigen24medis_mobile2/features/payment/receipt_item.dart';
 import 'package:oksigen24medis_mobile2/core/state/transaction_provider.dart';
+import 'package:oksigen24medis_mobile2/core/state/auth_provider.dart';
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 import 'package:provider/provider.dart';
 
@@ -107,6 +108,12 @@ class TransactionDetailScreen extends StatelessWidget {
                 quantity: e.qty,
               )).toList();
 
+              // Ambil nama kasir dari user yang sedang login
+              final auth = Provider.of<AuthProvider>(context, listen: false);
+              final cashierName = (auth.currentUser?['fullName'] as String?)?.isNotEmpty == true
+                  ? auth.currentUser!['fullName'] as String
+                  : 'Kasir';
+
               // Calculate change safely based on received amount if available, otherwise 0
               final received = totalTagihan;
               final change = 0;
@@ -114,7 +121,7 @@ class TransactionDetailScreen extends StatelessWidget {
               await pdfService.shareInvoicePdf(
                 invoiceNo: invoiceNo,
                 customerName: customerName,
-                cashierName: 'Kasir',
+                cashierName: cashierName,
                 receiptItems: receiptItems,
                 paymentMethod: method,
                 totalTagihan: totalTagihan,
@@ -546,10 +553,16 @@ class TransactionDetailScreen extends StatelessWidget {
                     quantity: e.qty,
                   )).toList();
 
+                  // Ambil nama kasir dari user yang sedang login
+                  final auth = Provider.of<AuthProvider>(context, listen: false);
+                  final cashierName = (auth.currentUser?['fullName'] as String?)?.isNotEmpty == true
+                      ? auth.currentUser!['fullName'] as String
+                      : 'Kasir';
+
                   final success = await printer.printReceipt(
                     invoiceNo: invoiceNo,
                     customerName: customerName,
-                    cashierName: 'Kasir',
+                    cashierName: cashierName,
                     receiptItems: receiptItems,
                     paymentMethod: method,
                     totalTagihan: totalTagihan,
