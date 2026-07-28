@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:oksigen24medis_mobile2/features/splash/splash_screen.dart';
 import 'package:oksigen24medis_mobile2/firebase_options.dart';
@@ -15,6 +16,8 @@ import 'package:provider/provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Load environment variables (.env)
+  await dotenv.load(fileName: ".env");
   // Initialize Firebase (required before using FCM or any Firebase service)
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
