@@ -394,6 +394,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
 
   // ── Status Breakdown Card ──────────────────────────────────────────────────
   Widget _buildStatusBreakdownCard() {
+    final isTablet = MediaQuery.of(context).size.width >= 720;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -409,12 +410,12 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
         ],
       ),
       child: GridView.count(
-        crossAxisCount: 2,
+        crossAxisCount: isTablet ? 5 : 2,
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        mainAxisSpacing: 16,
-        crossAxisSpacing: 16,
-        childAspectRatio: 2.5,
+        mainAxisSpacing: isTablet ? 8 : 16,
+        crossAxisSpacing: isTablet ? 12 : 16,
+        childAspectRatio: isTablet ? 2.0 : 2.5,
         children: [
           _buildGridStatusItem('Tersedia', '${widget.tersedia}', const Color(0xFF00A67E)),
           _buildGridStatusItem('Kosong', '${widget.kosong}', const Color(0xFFF59E0B)),

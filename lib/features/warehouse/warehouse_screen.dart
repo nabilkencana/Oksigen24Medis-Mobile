@@ -269,18 +269,34 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
                                 ),
                               ),
                             )
-                          : ListView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: mappedItems.length,
-                              itemBuilder: (context, index) {
-                                final item = mappedItems[index];
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 12.0),
-                                  child: _renderItemCard(item),
-                                );
-                              },
-                            ),
+                          : MediaQuery.of(context).size.width >= 720
+                              ? GridView.builder(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: MediaQuery.of(context).size.width >= 1000 ? 4 : 3,
+                                    crossAxisSpacing: 10,
+                                    mainAxisSpacing: 10,
+                                    mainAxisExtent: 280,
+                                  ),
+                                  itemCount: mappedItems.length,
+                                  itemBuilder: (context, index) {
+                                    final item = mappedItems[index];
+                                    return _renderItemCard(item);
+                                  },
+                                )
+                              : ListView.builder(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  itemCount: mappedItems.length,
+                                  itemBuilder: (context, index) {
+                                    final item = mappedItems[index];
+                                    return Padding(
+                                      padding: const EdgeInsets.only(bottom: 12.0),
+                                      child: _renderItemCard(item),
+                                    );
+                                  },
+                                ),
                     ),
                     const SizedBox(height: 100), // Spacer for FAB
                   ],
@@ -581,7 +597,7 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
         );
       },
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(12),
@@ -602,8 +618,10 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
                         style: AppTextStyles.bodyLarge.copyWith(
                           fontWeight: FontWeight.w800,
                           color: AppColors.textPrimary,
-                          fontSize: 18,
+                          fontSize: 15,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 6),
                       Container(
@@ -650,16 +668,16 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
               ],
             ),
             const Padding(
-              padding: EdgeInsets.symmetric(vertical: 16.0),
+              padding: EdgeInsets.symmetric(vertical: 10.0),
               child: Divider(color: Color(0xFFECEFF5), height: 1),
             ),
             GridView.count(
               crossAxisCount: 3,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              childAspectRatio: 2.0,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 12,
+              childAspectRatio: 1.8,
+              crossAxisSpacing: 6,
+              mainAxisSpacing: 6,
               children: [
                 _buildGridStatusItem(
                   'Tersedia',
@@ -912,23 +930,24 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
   Widget _buildGridStatusItem(String label, String value, Color color) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           label,
           style: AppTextStyles.caption.copyWith(
             color: color,
             fontWeight: FontWeight.w700,
-            fontSize: 11,
+            fontSize: 10,
           ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: 1),
         Text(
           value,
           style: AppTextStyles.bodyLarge.copyWith(
             fontWeight: FontWeight.w800,
-            fontSize: 16,
+            fontSize: 15,
             color: AppColors.textPrimary,
           ),
         ),

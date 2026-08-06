@@ -16,6 +16,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   DateTimeRange? _selectedDateRange;
+  Map<String, dynamic>? _selectedTx;
 
   @override
   void initState() {
@@ -230,10 +231,220 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     }
   }
 
+  Widget _buildDetailWidget(Map<String, dynamic> tx) {
+    final String status = tx['status'];
+    final String type = tx['type'];
+    final original = tx['original'];
+    final List<DetailItem> detailItems = [];
+
+    if (type == 'Sewa Tabung') {
+      bool parsedFromNotes = false;
+      final notesStr = original['notes']?.toString() ?? '';
+      if (notesStr.trim().startsWith('[') && notesStr.trim().endsWith(']')) {
+        try {
+          final List<dynamic> decoded = jsonDecode(notesStr);
+          for (var item in decoded) {
+            final name = item['name']?.toString() ?? 'Item';
+            final int price = int.tryParse(item['price']?.toString() ?? '0') ?? 0;
+            final int quantity = int.tryParse(item['quantity']?.toString() ?? '1') ?? 1;
+            if (!name.toLowerCase().contains('deposit')) {
+              detailItems.add(DetailItem(
+                name: name,
+                qty: quantity,
+                unitPrice: price,
+              ));
+            }
+          }
+          parsedFromNotes = true;
+        } catch (e) {
+          debugPrint('Error parsing notes JSON: $e');
+        }
+      }
+
+      if (!parsedFromNotes) {
+        final List<dynamic> items = original['items'] ?? [];
+        for (var it in items) {
+          final cyl = it['cylinder'] ?? {};
+          final size = cyl['size'] ?? '6m3';
+          final otName = cyl['oxygenType']?['name'] ?? 'Tabung Oksigen';
+          detailItems.add(DetailItem(
+            name: '$otName ($size)',
+            qty: 1,
+            unitPrice: double.tryParse(it['price']?.toString() ?? '75000')?.round() ?? 75000,
+          ));
+        }
+      }
+    } else {
+      final List<dynamic> items = original['items'] ?? [];
+      for (var it in items) {
+        if (type == 'Isi Ulang') {
+          final String size = it['size']?.toString() ?? '';
+          final String prodName = it['product']?['name']?.toString() ?? '';
+          final String itemName;
+          if (size.isNotEmpty) {
+            itemName = 'Refill Tabung Oksigen $size';
+          } else if (prodName.isNotEmpty && !prodName.toLowerCase().contains('regulator')) {
+            itemName = prodName;
+          } else {
+            itemName = 'Refill Oksigen Medis';
+          }
+          detailItems.add(DetailItem(
+            name: itemName,
+            qty: it['quantity'] ?? 1,
+            unitPrice: double.tryParse(it['unitPrice']?.toString() ?? '0')?.round() ?? 0,
+          ));
+        } else {
+          final prodName = it['product']?['name'] ?? 'Alat Medis';
+          detailItems.add(DetailItem(
+            name: prodName,
+            qty: it['quantity'] ?? 1,
+            unitPrice: double.tryParse(it['unitPrice']?.toString() ?? '0')?.round() ?? 0,
+          ));
+        }
+      }
+      if (detailItems.isEmpty && type == 'Isi Ulang') {
+        detailItems.add(DetailItem(
+          name: 'Refill Oksigen Medis',
+          qty: 1,
+          unitPrice: tx['totalAmount'].round(),
+        ));
+      }
+    }
+
+    final dateStr = tx['createdAt'].toString().substring(0, 16).replaceAll('T', ', ');
+
+    int sewaDaysVal = 0;
+    if (type == 'Sewa Tabung' && original != null) {
+      try {
+        final start = DateTime.parse(tx['createdAt']);
+        final due = DateTime.parse(original['dueDate']?.toString() ?? '');
+        sewaDaysVal = due.difference(start).inDays;
+        if (sewaDaysVal <= 0) {
+          sewaDaysVal = (due.difference(start).inHours / 24).ceil();
+        }
+        if (sewaDaysVal <= 0) {
+          sewaDaysVal = 7;
+        }
+      } catch (_) {
+        sewaDaysVal = 7;
+      }
+    }
+
+    int rentalCost = 0;
+    if (type == 'Sewa Tabung') {
+      for (var it in detailItems) {
+        rentalCost += it.unitPrice * it.qty;
+      }
+    }
+    final int calculatedDeposit = type == 'Sewa Tabung'
+        ? (tx['totalAmount'].round() - rentalCost).clamp(0, 999999999)
+        : 0;
+
+    return TransactionDetailScreen(
+      rentalId: type == 'Sewa Tabung' ? original['id']?.toString() : null,
+      transactionId: tx['id']?.toString(),
+      transactionType: type == 'Sewa Tabung'
+          ? 'rental'
+          : type == 'Isi Ulang'
+              ? 'refill'
+              : 'sale',
+      invoiceNo: tx['invoiceNo'],
+      customerName: tx['customerName'],
+      customerType: type,
+      dateStr: dateStr,
+      status: status,
+      method: tx['paymentMethod'] ?? 'Transfer Bank',
+      totalTagihan: tx['totalAmount'].round(),
+      deposit: calculatedDeposit,
+      sewaDays: sewaDaysVal,
+      returnDeadline: type == 'Sewa Tabung' ? original['dueDate']?.toString().substring(0, 10) ?? '-' : '-',
+      items: detailItems,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<TransactionProvider>(context);
     final mappedTxs = _buildMappedTxs(provider);
+    final isTablet = MediaQuery.of(context).size.width >= 720;
+
+    final Widget listContent = Column(
+      children: [
+        // Search Input
+        Container(
+          color: AppColors.surface,
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          child: TextFormField(
+            controller: _searchController,
+            style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimary),
+            decoration: InputDecoration(
+              hintText: 'Cari invoice atau pelanggan...',
+              prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary, size: 20),
+              filled: true,
+              fillColor: AppColors.background,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+        ),
+        if (_selectedDateRange != null)
+          Container(
+            color: AppColors.surface,
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            alignment: Alignment.centerLeft,
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withAlpha(15),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.primary.withAlpha(40)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.date_range_rounded, size: 14, color: AppColors.primary),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${_selectedDateRange!.start.toString().substring(0, 10)} s/d ${_selectedDateRange!.end.toString().substring(0, 10)}',
+                        style: AppTextStyles.caption.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedDateRange = null;
+                          });
+                        },
+                        child: const Icon(Icons.close, size: 14, color: AppColors.primary),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        // TabBarView for list contents
+        Expanded(
+          child: provider.isLoading && provider.rentals.isEmpty
+              ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+              : TabBarView(
+                  children: [
+                    _buildTransactionList(mappedTxs, 'SEMUA'),
+                    _buildTransactionList(mappedTxs, 'BERJALAN'),
+                    _buildTransactionList(mappedTxs, 'SELESAI'),
+                  ],
+                ),
+        ),
+      ],
+    );
 
     return DefaultTabController(
       length: 3,
@@ -272,83 +483,52 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
             ],
           ),
         ),
-        body: Column(
-          children: [
-            // Search Input
-            Container(
-              color: AppColors.surface,
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-              child: TextFormField(
-                controller: _searchController,
-                style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimary),
-                decoration: InputDecoration(
-                  hintText: 'Cari invoice atau pelanggan...',
-                  prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary, size: 20),
-                  filled: true,
-                  fillColor: AppColors.background,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide.none,
+        body: isTablet
+            ? Row(
+                children: [
+                  SizedBox(
+                    width: 380,
+                    child: listContent,
                   ),
-                ),
-              ),
-            ),
-            if (_selectedDateRange != null)
-              Container(
-                color: AppColors.surface,
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                alignment: Alignment.centerLeft,
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withAlpha(15),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppColors.primary.withAlpha(40)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.date_range_rounded, size: 14, color: AppColors.primary),
-                          const SizedBox(width: 6),
-                          Text(
-                            '${_selectedDateRange!.start.toString().substring(0, 10)} s/d ${_selectedDateRange!.end.toString().substring(0, 10)}',
-                            style: AppTextStyles.caption.copyWith(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w600,
+                  const VerticalDivider(thickness: 1, width: 1, color: Color(0xFFE2E8F0)),
+                  Expanded(
+                    child: _selectedTx == null
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.receipt_long_rounded,
+                                  size: 72,
+                                  color: AppColors.textSecondary.withAlpha(100),
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Pilih Transaksi',
+                                  style: AppTextStyles.h3.copyWith(
+                                    color: AppColors.textSecondary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Pilih salah satu transaksi dari daftar sebelah kiri\nuntuk melihat rincian resi secara lengkap.',
+                                  textAlign: TextAlign.center,
+                                  style: AppTextStyles.bodyMedium.copyWith(
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
                             ),
+                          )
+                        : KeyedSubtree(
+                            key: ValueKey(_selectedTx!['id']),
+                            child: _buildDetailWidget(_selectedTx!),
                           ),
-                          const SizedBox(width: 6),
-                          GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _selectedDateRange = null;
-                              });
-                            },
-                            child: const Icon(Icons.close, size: 14, color: AppColors.primary),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            // TabBarView for list contents
-            Expanded(
-              child: provider.isLoading && provider.rentals.isEmpty
-                  ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-                  : TabBarView(
-                      children: [
-                        _buildTransactionList(mappedTxs, 'SEMUA'),
-                        _buildTransactionList(mappedTxs, 'BERJALAN'),
-                        _buildTransactionList(mappedTxs, 'SELESAI'),
-                      ],
-                    ),
-            ),
-          ],
-        ),
+                  ),
+                ],
+              )
+            : listContent,
       ),
     );
   }
@@ -408,7 +588,6 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
   // ── Reusable Transaction Card ──────────────────────────────────────────────
   Widget _buildTransactionCard(Map<String, dynamic> tx) {
     final String status = tx['status'];
-    final String type = tx['type'];
 
     // Badges details based on status
     final String statusText;
@@ -448,141 +627,15 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
           onTap: () {
-            // Map items dynamically from backend object
-            final List<DetailItem> detailItems = [];
-            final original = tx['original'];
-
-            if (type == 'Sewa Tabung') {
-              bool parsedFromNotes = false;
-              final notesStr = original['notes']?.toString() ?? '';
-              if (notesStr.trim().startsWith('[') && notesStr.trim().endsWith(']')) {
-                try {
-                  final List<dynamic> decoded = jsonDecode(notesStr);
-                  for (var item in decoded) {
-                    final name = item['name']?.toString() ?? 'Item';
-                    final int price = int.tryParse(item['price']?.toString() ?? '0') ?? 0;
-                    final int quantity = int.tryParse(item['quantity']?.toString() ?? '1') ?? 1;
-                    if (!name.toLowerCase().contains('deposit')) {
-                      detailItems.add(DetailItem(
-                        name: name,
-                        qty: quantity,
-                        unitPrice: price,
-                      ));
-                    }
-                  }
-                  parsedFromNotes = true;
-                } catch (e) {
-                  debugPrint('Error parsing notes JSON: $e');
-                }
-              }
-
-              if (!parsedFromNotes) {
-                final List<dynamic> items = original['items'] ?? [];
-                for (var it in items) {
-                  final cyl = it['cylinder'] ?? {};
-                  final size = cyl['size'] ?? '6m3';
-                  final otName = cyl['oxygenType']?['name'] ?? 'Tabung Oksigen';
-                  detailItems.add(DetailItem(
-                    name: '$otName ($size)',
-                    qty: 1,
-                    unitPrice: double.tryParse(it['price']?.toString() ?? '75000')?.round() ?? 75000,
-                  ));
-                }
-              }
+            if (MediaQuery.of(context).size.width >= 720) {
+              setState(() => _selectedTx = tx);
             } else {
-              // Penjualan or Isi Ulang
-              final List<dynamic> items = original['items'] ?? [];
-              for (var it in items) {
-                if (type == 'Isi Ulang') {
-                  // Untuk isi ulang: coba ambil info ukuran dari field 'size' atau nama produk
-                  final String size = it['size']?.toString() ?? '';
-                  final String prodName = it['product']?['name']?.toString() ?? '';
-                  final String itemName;
-                  if (size.isNotEmpty) {
-                    itemName = 'Refill Tabung Oksigen $size';
-                  } else if (prodName.isNotEmpty && !prodName.toLowerCase().contains('regulator')) {
-                    itemName = prodName;
-                  } else {
-                    itemName = 'Refill Oksigen Medis';
-                  }
-                  detailItems.add(DetailItem(
-                    name: itemName,
-                    qty: it['quantity'] ?? 1,
-                    unitPrice: double.tryParse(it['unitPrice']?.toString() ?? '0')?.round() ?? 0,
-                  ));
-                } else {
-                  // Penjualan biasa
-                  final prodName = it['product']?['name'] ?? 'Alat Medis';
-                  detailItems.add(DetailItem(
-                    name: prodName,
-                    qty: it['quantity'] ?? 1,
-                    unitPrice: double.tryParse(it['unitPrice']?.toString() ?? '0')?.round() ?? 0,
-                  ));
-                }
-              }
-              // Jika items kosong tapi tipe Isi Ulang, buat item fallback
-              if (detailItems.isEmpty && type == 'Isi Ulang') {
-                detailItems.add(DetailItem(
-                  name: 'Refill Oksigen Medis',
-                  qty: 1,
-                  unitPrice: tx['totalAmount'].round(),
-                ));
-              }
-            }
-
-            final dateStr = tx['createdAt'].toString().substring(0, 16).replaceAll('T', ', ');
-
-            int sewaDaysVal = 0;
-            if (type == 'Sewa Tabung' && original != null) {
-              try {
-                final start = DateTime.parse(tx['createdAt']);
-                final due = DateTime.parse(original['dueDate']?.toString() ?? '');
-                sewaDaysVal = due.difference(start).inDays;
-                if (sewaDaysVal <= 0) {
-                  sewaDaysVal = (due.difference(start).inHours / 24).ceil();
-                }
-                if (sewaDaysVal <= 0) {
-                  sewaDaysVal = 7; // Fallback
-                }
-              } catch (_) {
-                sewaDaysVal = 7;
-              }
-            }
-
-            int rentalCost = 0;
-            if (type == 'Sewa Tabung') {
-              for (var it in detailItems) {
-                rentalCost += it.unitPrice * it.qty;
-              }
-            }
-            final int calculatedDeposit = type == 'Sewa Tabung'
-                ? (tx['totalAmount'].round() - rentalCost).clamp(0, 999999999)
-                : 0;
-
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => TransactionDetailScreen(
-                  rentalId: type == 'Sewa Tabung' ? original['id']?.toString() : null,
-                  transactionId: tx['id']?.toString(),
-                  transactionType: type == 'Sewa Tabung'
-                      ? 'rental'
-                      : type == 'Isi Ulang'
-                          ? 'refill'
-                          : 'sale',
-                  invoiceNo: tx['invoiceNo'],
-                  customerName: tx['customerName'],
-                  customerType: type, // tampilkan tipe transaksi di detail
-                  dateStr: dateStr,
-                  status: status,
-                  method: tx['paymentMethod'] ?? 'Transfer Bank', // ← FIX: teruskan paymentMethod dari data
-                  totalTagihan: tx['totalAmount'].round(),
-                  deposit: calculatedDeposit,
-                  sewaDays: sewaDaysVal,
-                  returnDeadline: type == 'Sewa Tabung' ? original['dueDate']?.toString().substring(0, 10) ?? '-' : '-',
-                  items: detailItems,
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => _buildDetailWidget(tx),
                 ),
-              ),
-            );
+              );
+            }
           },
           child: Padding(
             padding: const EdgeInsets.all(16.0),

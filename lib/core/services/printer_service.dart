@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:image/image.dart' as img;
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
@@ -15,6 +15,10 @@ class PrinterService {
   // Get list of paired bluetooth devices
   Future<List<BluetoothInfo>> getBluetoothDevices() async {
     try {
+      if (defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.macOS) {
+        return [];
+      }
       // Request Bluetooth and Location permissions at runtime
       await [
         Permission.bluetooth,
@@ -33,6 +37,10 @@ class PrinterService {
   // Connect to a device by MAC address
   Future<bool> connect(String macAddress) async {
     try {
+      if (defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.macOS) {
+        return false;
+      }
       final bool result = await PrintBluetoothThermal.connect(macPrinterAddress: macAddress);
       return result;
     } catch (e) {
@@ -43,6 +51,10 @@ class PrinterService {
   // Check connection status
   Future<bool> isConnected() async {
     try {
+      if (defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.macOS) {
+        return false;
+      }
       final bool result = await PrintBluetoothThermal.connectionStatus;
       return result;
     } catch (e) {
@@ -52,7 +64,13 @@ class PrinterService {
 
   // Disconnect from printer
   Future<void> disconnect() async {
-    await PrintBluetoothThermal.disconnect;
+    try {
+      if (defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.macOS) {
+        return;
+      }
+      await PrintBluetoothThermal.disconnect;
+    } catch (_) {}
   }
 
   // Load, resize, and rasterize logo.png to monochrome bytes
@@ -254,8 +272,16 @@ class PrinterService {
     bytes.addAll(feedPaper);
 
     // Send to printer
-    final result = await PrintBluetoothThermal.writeBytes(bytes);
-    return result;
+    try {
+      if (defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.macOS) {
+        return false;
+      }
+      final result = await PrintBluetoothThermal.writeBytes(bytes);
+      return result;
+    } catch (e) {
+      return false;
+    }
   }
 
   String _formatNumber(int val) {

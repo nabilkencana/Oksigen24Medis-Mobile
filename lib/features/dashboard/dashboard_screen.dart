@@ -157,28 +157,78 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
 
 
+    final isTablet = MediaQuery.of(context).size.width >= 720;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: currentAppBar,
-      body: Stack(
+      body: Row(
         children: [
-          currentBody,
-          // In-app toast overlay
-          if (_activeToast != null)
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: TransactionToast(
-                notification: _activeToast!,
-                onDismiss: () {
-                  if (mounted) setState(() => _activeToast = null);
-                },
+          if (isTablet)
+            NavigationRail(
+              selectedIndex: _selectedIndex,
+              onDestinationSelected: (index) {
+                setState(() => _selectedIndex = index);
+              },
+              backgroundColor: AppColors.surface,
+              labelType: NavigationRailLabelType.all,
+              selectedIconTheme: const IconThemeData(color: AppColors.primary, size: 24),
+              unselectedIconTheme: const IconThemeData(color: AppColors.textSecondary, size: 24),
+              selectedLabelTextStyle: AppTextStyles.caption.copyWith(
+                color: AppColors.primary,
+                fontWeight: FontWeight.bold,
               ),
+              unselectedLabelTextStyle: AppTextStyles.caption.copyWith(
+                color: AppColors.textSecondary,
+              ),
+              destinations: const [
+                NavigationRailDestination(
+                  icon: Icon(Icons.dashboard_outlined),
+                  selectedIcon: Icon(Icons.dashboard_rounded),
+                  label: Text('Beranda'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.receipt_long_outlined),
+                  selectedIcon: Icon(Icons.receipt_long_rounded),
+                  label: Text('Transaksi'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.inventory_2_outlined),
+                  selectedIcon: Icon(Icons.inventory_2_rounded),
+                  label: Text('Gudang'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.person_outline_rounded),
+                  selectedIcon: Icon(Icons.person_rounded),
+                  label: Text('Profil'),
+                ),
+              ],
             ),
+          if (isTablet)
+            const VerticalDivider(thickness: 1, width: 1, color: Color(0xFFE2E8F0)),
+          Expanded(
+            child: Stack(
+              children: [
+                currentBody,
+                // In-app toast overlay
+                if (_activeToast != null)
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: TransactionToast(
+                      notification: _activeToast!,
+                      onDismiss: () {
+                        if (mounted) setState(() => _activeToast = null);
+                      },
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ],
       ),
-      bottomNavigationBar: _buildBottomNav(),
+      bottomNavigationBar: isTablet ? null : _buildBottomNav(),
     );
   }
 
@@ -337,6 +387,71 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final List<dynamic> lowStockItems = summary['lowStockItems'] ?? [];
     final List<dynamic> recentActivities = summary['recentActivities'] ?? [];
 
+    final isTablet = MediaQuery.of(context).size.width >= 720;
+
+    if (isTablet) {
+      return SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Left main column (KPIs + Quick Actions + Operational Status)
+            Expanded(
+              flex: 3,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildKpiSection(
+                    rentedBigCylinders: rentedBigCylinders,
+                    rentedSmallCylinders: rentedSmallCylinders,
+                    rentedRegulators: rentedRegulators,
+                    vendorCylinders: vendorCylinders,
+                    lowStockCount: lowStockCount,
+                    todayRevenue: todayRevenue,
+                    lowStockItems: lowStockItems,
+                  ),
+                  const SizedBox(height: 20.0),
+                  Text(
+                    'AKSI CEPAT',
+                    style: AppTextStyles.caption.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF434656),
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 10.0),
+                  _buildQuickActions(auth),
+                  const SizedBox(height: 20.0),
+                  _buildDepotStatusCard(
+                    rentedBigCylinders,
+                    rentedSmallCylinders,
+                    rentedRegulators,
+                    vendorCylinders,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 20.0),
+            // Right sidebar column (Critical Stock Alert + Recent Activity Timeline)
+            Expanded(
+              flex: 2,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (lowStockItems.isNotEmpty) ...[
+                    _buildCriticalStockSection(lowStockItems),
+                    const SizedBox(height: 20.0),
+                  ],
+                  _buildActivitySection(recentActivities),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(16.0),
@@ -479,13 +594,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // ── Quick actions grid ────────────────────────────────────────────────────
   Widget _buildQuickActions(AuthProvider auth) {
+    final isTablet = MediaQuery.of(context).size.width >= 720;
     return GridView.count(
-      crossAxisCount: 2,
+      crossAxisCount: isTablet ? 4 : 2,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       crossAxisSpacing: 12.0,
       mainAxisSpacing: 12.0,
-      childAspectRatio: 1.3,
+      childAspectRatio: isTablet ? 1.05 : 1.3,
       children: _quickActions.map((a) {
         return _QuickActionButton(
           data: a,
@@ -532,6 +648,147 @@ class _DashboardScreenState extends State<DashboardScreen> {
           },
         );
       }).toList(),
+    );
+  }
+
+  // ── Depot Operational Status Card (Tablet layout) ──────────────────────────
+  Widget _buildDepotStatusCard(
+    int rentedBig,
+    int rentedSmall,
+    int rentedRegulators,
+    int vendorCount,
+  ) {
+    final totalRented = rentedBig + rentedSmall + rentedRegulators;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 0.5),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x03000000),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'STATUS ASET & OPERASIONAL',
+                style: AppTextStyles.caption.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF434656),
+                  letterSpacing: 0.5,
+                ),
+              ),
+              GestureDetector(
+                onTap: () {
+                  setState(() => _selectedIndex = 2); // Jump to Gudang
+                },
+                child: Row(
+                  children: [
+                    Text(
+                      'Kelola Gudang',
+                      style: AppTextStyles.caption.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      size: 16,
+                      color: AppColors.primary,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatusMetricItem(
+                  'Total Aset Disewa',
+                  '$totalRented Unit',
+                  const Color(0xFF0055FF),
+                  Icons.assignment_turned_in_outlined,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildStatusMetricItem(
+                  'Aset di Vendor / Isi',
+                  '$vendorCount Unit',
+                  const Color(0xFF8B5CF6),
+                  Icons.local_shipping_outlined,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusMetricItem(
+    String title,
+    String value,
+    Color color,
+    IconData icon,
+  ) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: color.withAlpha(15),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withAlpha(40), width: 0.5),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withAlpha(30),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 20, color: color),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: AppTextStyles.caption.copyWith(
+                    color: AppColors.textSecondary,
+                    fontSize: 11,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: AppTextStyles.bodyLarge.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1136,7 +1393,7 @@ class _KpiCard extends StatelessWidget {
     return GestureDetector(
       onTap: data.onTap,
       child: Container(
-        width: 200,
+        width: 180,
         decoration: BoxDecoration(
           color: Colors.white.withAlpha(217), // rgba(255,255,255,0.85)
           borderRadius: BorderRadius.circular(12),
@@ -1232,6 +1489,9 @@ class _QuickActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isTablet = MediaQuery.of(context).size.width >= 720;
+    final double imgSize = isTablet ? 52.0 : 72.0;
+
     return Material(
       color: AppColors.surface,
       borderRadius: BorderRadius.circular(12),
@@ -1251,24 +1511,27 @@ class _QuickActionButton extends StatelessWidget {
               ),
             ],
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: EdgeInsets.symmetric(
+            horizontal: isTablet ? 8 : 16,
+            vertical: isTablet ? 8 : 12,
+          ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Icon circle — primary-container/10
+              // Icon circle
               Container(
-                width: (data.label == 'Kontrak Sewa' || data.label == 'Isi Ulang' || data.label == 'Penjualan' || data.label == 'Pengembalian') ? 80 : 56,
-                height: (data.label == 'Kontrak Sewa' || data.label == 'Isi Ulang' || data.label == 'Penjualan' || data.label == 'Pengembalian') ? 80 : 56,
+                width: imgSize,
+                height: imgSize,
                 decoration: BoxDecoration(
-                  color: (data.label == 'Kontrak Sewa' || data.label == 'Isi Ulang' || data.label == 'Penjualan' || data.label == 'Pengembalian') ? Colors.transparent : AppColors.primary.withAlpha(26), // /10 opacity
+                  color: (data.label == 'Kontrak Sewa' || data.label == 'Isi Ulang' || data.label == 'Penjualan' || data.label == 'Pengembalian') ? Colors.transparent : AppColors.primary.withAlpha(26),
                   shape: BoxShape.circle,
                 ),
                 child: data.label == 'Kontrak Sewa'
                     ? Center(
                         child: Image.asset(
                           'assets/images/kontrak_sewa.png',
-                          width: 80,
-                          height: 80,
+                          width: imgSize,
+                          height: imgSize,
                           fit: BoxFit.contain,
                         ),
                       )
@@ -1276,8 +1539,8 @@ class _QuickActionButton extends StatelessWidget {
                         ? Center(
                             child: Image.asset(
                               'assets/images/isi_ulang.png',
-                              width: 80,
-                              height: 80,
+                              width: imgSize,
+                              height: imgSize,
                               fit: BoxFit.contain,
                             ),
                           )
@@ -1285,8 +1548,8 @@ class _QuickActionButton extends StatelessWidget {
                             ? Center(
                                 child: Image.asset(
                                   'assets/images/penjualan.png',
-                                  width: 80,
-                                  height: 80,
+                                  width: imgSize,
+                                  height: imgSize,
                                   fit: BoxFit.contain,
                                 ),
                               )
@@ -1294,22 +1557,24 @@ class _QuickActionButton extends StatelessWidget {
                                 ? Center(
                                     child: Image.asset(
                                       'assets/images/pengembalian.png',
-                                      width: 80,
-                                      height: 80,
+                                      width: imgSize,
+                                      height: imgSize,
                                       fit: BoxFit.contain,
                                     ),
                                   )
-                                : Icon(data.icon, color: AppColors.primary, size: 28),
+                                : Icon(data.icon, color: AppColors.primary, size: isTablet ? 24 : 28),
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: isTablet ? 6 : 10),
               Text(
                 data.label,
                 style: AppTextStyles.bodyMedium.copyWith(
                   color: AppColors.textPrimary,
                   fontWeight: FontWeight.w600,
-                  fontSize: 14,
+                  fontSize: isTablet ? 12 : 14,
                 ),
                 textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),

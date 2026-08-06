@@ -89,8 +89,21 @@ class LocalNotificationService {
 
     // Get FCM token (used by backend to send targeted push)
     try {
-      _fcmToken = await _fcm.getToken();
-      debugPrint('[FCM] Token: $_fcmToken');
+      if (defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.macOS) {
+        final apnsToken = await _fcm.getAPNSToken();
+        if (apnsToken == null) {
+          debugPrint(
+              '[FCM] APNS token is not set yet (likely iOS Simulator). Skipping getToken().');
+        } else {
+          _fcmToken = await _fcm.getToken();
+        }
+      } else {
+        _fcmToken = await _fcm.getToken();
+      }
+      if (_fcmToken != null) {
+        debugPrint('[FCM] Token: $_fcmToken');
+      }
     } catch (e) {
       debugPrint('[FCM] Failed to get token: $e');
     }

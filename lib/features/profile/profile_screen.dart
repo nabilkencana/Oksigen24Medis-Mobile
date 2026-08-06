@@ -60,158 +60,309 @@ class _ProfileScreenState extends State<ProfileScreen> {
       body: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── COMPONENT 1: USER INFO CARD ──────────────────────────────────
-            _buildUserInfoCard(context, fullName, role),
-
-            const SizedBox(height: 24),
-
-            // ── COMPONENT 2: SETTINGS LIST ───────────────────────────────────
-            // Group 1: Toko & Perangkat
-            _buildSettingGroup(
-              'Toko & Perangkat',
-              [
-                FutureBuilder<bool>(
-                  future: PrinterService().isConnected(),
-                  builder: (context, snapshot) {
-                    final connected = snapshot.data ?? false;
-                    return _buildSettingItem(
-                      Icons.print,
-                      'Printer Struk Bluetooth',
-                      connected ? 'Terhubung (EPPOS-58)' : 'Ketuk untuk menghubungkan',
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              color: connected ? AppColors.success : AppColors.error,
-                              shape: BoxShape.circle,
+        child: MediaQuery.of(context).size.width >= 720
+            ? Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                      // Left column: Profile card & App Info
+                      Expanded(
+                        flex: 2,
+                        child: Column(
+                          children: [
+                            _buildUserInfoCard(context, fullName, role),
+                            const SizedBox(height: 24),
+                            _buildLogoutButton(context, auth),
+                            const SizedBox(height: 24),
+                            const Center(
+                              child: Text(
+                                'Oksigen Medis 24 Jam POS v2.4.1 (Stable Build)',
+                                style: TextStyle(
+                                  color: Color(0xFF8E92A4),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
                             ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 24),
+                      // Right column: Settings Groups
+                      Expanded(
+                        flex: 3,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildSettingGroup(
+                              'Toko & Perangkat',
+                              [
+                                FutureBuilder<bool>(
+                                  future: PrinterService().isConnected(),
+                                  builder: (context, snapshot) {
+                                    final connected = snapshot.data ?? false;
+                                    return _buildSettingItem(
+                                      Icons.print,
+                                      'Printer Struk Bluetooth',
+                                      connected ? 'Terhubung (EPPOS-58)' : 'Ketuk untuk menghubungkan',
+                                      trailing: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Container(
+                                            width: 8,
+                                            height: 8,
+                                            decoration: BoxDecoration(
+                                              color: connected ? AppColors.success : AppColors.error,
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          const Icon(Icons.chevron_right, color: AppColors.textSecondary, size: 20),
+                                        ],
+                                      ),
+                                      onTap: () async {
+                                        await _showPrinterScanDialog(context);
+                                        setState(() {});
+                                      },
+                                    );
+                                  },
+                                ),
+                                if (role != 'FINANCE' && role != 'WAREHOUSE')
+                                  FutureBuilder<String>(
+                                    future: SharedPreferences.getInstance().then((p) => p.getString('receipt_shop_name') ?? 'Klinik Oksigen Sehat Bersama'),
+                                    builder: (context, snapshot) {
+                                      final shopName = snapshot.data ?? 'Klinik Oksigen Sehat Bersama';
+                                      return _buildSettingItem(
+                                        Icons.store,
+                                        'Informasi Toko',
+                                        shopName,
+                                        onTap: () async {
+                                          await _showShopInfoBottomSheet(context);
+                                          setState(() {});
+                                        },
+                                      );
+                                    },
+                                  ),
+                                _buildSettingItem(
+                                  Icons.receipt_long,
+                                  'Pengaturan Struk / Invoice',
+                                  'Logo, Catatan Bawah',
+                                  onTap: () async {
+                                    await _showReceiptSettingsBottomSheet(context);
+                                    setState(() {});
+                                  },
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+                            _buildSettingGroup(
+                              'Keamanan Akun',
+                              [
+                                _buildSettingItem(
+                                  Icons.lock_outline,
+                                  'Ubah Password',
+                                  'Ganti password login Anda',
+                                  onTap: () {
+                                    _showSecurityBottomSheet(context, auth, 'Password');
+                                  },
+                                ),
+                                _buildSettingItem(
+                                  Icons.pin_outlined,
+                                  'PIN Otorisasi',
+                                  'Ganti PIN transaksi / otorisasi',
+                                  onTap: () {
+                                    _showSecurityBottomSheet(context, auth, 'PIN Otorisasi');
+                                  },
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+                            _buildSettingGroup(
+                              'Bantuan',
+                              [
+                                _buildSettingItem(
+                                  Icons.help_outline,
+                                  'Pusat Bantuan',
+                                  'Hubungi support & customer service',
+                                  onTap: () {
+                                    _showHelpCenterBottomSheet(context);
+                                  },
+                                ),
+                                _buildSettingItem(
+                                  Icons.info_outline,
+                                  'Tentang Aplikasi',
+                                  'Versi 1.0.0',
+                                  onTap: () {
+                                    showAboutDialog(
+                                      context: context,
+                                      applicationName: 'POS Oksigen Medis',
+                                      applicationVersion: '1.0.0',
+                                      applicationIcon: const Icon(
+                                        Icons.medical_services,
+                                        size: 48,
+                                        color: Colors.blue,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // ── COMPONENT 1: USER INFO CARD ──────────────────────────────────
+                      _buildUserInfoCard(context, fullName, role),
+
+                      const SizedBox(height: 24),
+
+                      // ── COMPONENT 2: SETTINGS LIST ───────────────────────────────────
+                      // Group 1: Toko & Perangkat
+                      _buildSettingGroup(
+                        'Toko & Perangkat',
+                        [
+                          FutureBuilder<bool>(
+                            future: PrinterService().isConnected(),
+                            builder: (context, snapshot) {
+                              final connected = snapshot.data ?? false;
+                              return _buildSettingItem(
+                                Icons.print,
+                                'Printer Struk Bluetooth',
+                                connected ? 'Terhubung (EPPOS-58)' : 'Ketuk untuk menghubungkan',
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: BoxDecoration(
+                                        color: connected ? AppColors.success : AppColors.error,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const Icon(Icons.chevron_right, color: AppColors.textSecondary, size: 20),
+                                  ],
+                                ),
+                                onTap: () async {
+                                  await _showPrinterScanDialog(context);
+                                  setState(() {});
+                                },
+                              );
+                            },
                           ),
-                          const SizedBox(width: 8),
-                          const Icon(Icons.chevron_right, color: AppColors.textSecondary, size: 20),
+                          // RBAC: Hide Informasi Toko if role is FINANCE or WAREHOUSE
+                          if (role != 'FINANCE' && role != 'WAREHOUSE')
+                            FutureBuilder<String>(
+                              future: SharedPreferences.getInstance().then((p) => p.getString('receipt_shop_name') ?? 'Klinik Oksigen Sehat Bersama'),
+                              builder: (context, snapshot) {
+                                final shopName = snapshot.data ?? 'Klinik Oksigen Sehat Bersama';
+                                return _buildSettingItem(
+                                  Icons.store,
+                                  'Informasi Toko',
+                                  shopName,
+                                  onTap: () async {
+                                    await _showShopInfoBottomSheet(context);
+                                    setState(() {});
+                                  },
+                                );
+                              },
+                            ),
+                          _buildSettingItem(
+                            Icons.receipt_long,
+                            'Pengaturan Struk / Invoice',
+                            'Logo, Catatan Bawah',
+                            onTap: () async {
+                              await _showReceiptSettingsBottomSheet(context);
+                              setState(() {});
+                            },
+                          ),
                         ],
                       ),
-                      onTap: () async {
-                        await _showPrinterScanDialog(context);
-                        setState(() {});
-                      },
-                    );
-                  },
-                ),
-                // RBAC: Hide Informasi Toko if role is FINANCE or WAREHOUSE
-                if (role != 'FINANCE' && role != 'WAREHOUSE')
-                  FutureBuilder<String>(
-                    future: SharedPreferences.getInstance().then((p) => p.getString('receipt_shop_name') ?? 'Klinik Oksigen Sehat Bersama'),
-                    builder: (context, snapshot) {
-                      final shopName = snapshot.data ?? 'Klinik Oksigen Sehat Bersama';
-                      return _buildSettingItem(
-                        Icons.store,
-                        'Informasi Toko',
-                        shopName,
-                        onTap: () async {
-                          await _showShopInfoBottomSheet(context);
-                          setState(() {});
-                        },
-                      );
-                    },
-                  ),
-                _buildSettingItem(
-                  Icons.receipt_long,
-                  'Pengaturan Struk / Invoice',
-                  'Logo, Catatan Bawah',
-                  onTap: () async {
-                    await _showReceiptSettingsBottomSheet(context);
-                    setState(() {});
-                  },
-                ),
-              ],
-            ),
 
-            const SizedBox(height: 24),
+                      const SizedBox(height: 24),
 
-            // Group 2: Keamanan Akun
-            _buildSettingGroup(
-              'Keamanan Akun',
-              [
-                _buildSettingItem(
-                  Icons.lock_outline,
-                  'Ubah Password',
-                  'Ganti password login Anda',
-                  onTap: () {
-                    _showSecurityBottomSheet(context, auth, 'Password');
-                  },
-                ),
-                _buildSettingItem(
-                  Icons.pin_outlined,
-                  'PIN Otorisasi',
-                  'Ganti PIN transaksi / otorisasi',
-                  onTap: () {
-                    _showSecurityBottomSheet(context, auth, 'PIN Otorisasi');
-                  },
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 24),
-
-            // Group 3: Bantuan
-            _buildSettingGroup(
-              'Bantuan',
-              [
-                _buildSettingItem(
-                  Icons.help_outline,
-                  'Pusat Bantuan',
-                  'Hubungi support & customer service',
-                  onTap: () {
-                    _showHelpCenterBottomSheet(context);
-                  },
-                ),
-                _buildSettingItem(
-                  Icons.info_outline,
-                  'Tentang Aplikasi',
-                  'Versi 1.0.0',
-                  onTap: () {
-                    showAboutDialog(
-                      context: context,
-                      applicationName: 'POS Oksigen Medis',
-                      applicationVersion: '1.0.0',
-                      applicationIcon: const Icon(
-                        Icons.medical_services,
-                        size: 48,
-                        color: Colors.blue,
+                      // Group 2: Keamanan Akun
+                      _buildSettingGroup(
+                        'Keamanan Akun',
+                        [
+                          _buildSettingItem(
+                            Icons.lock_outline,
+                            'Ubah Password',
+                            'Ganti password login Anda',
+                            onTap: () {
+                              _showSecurityBottomSheet(context, auth, 'Password');
+                            },
+                          ),
+                          _buildSettingItem(
+                            Icons.pin_outlined,
+                            'PIN Otorisasi',
+                            'Ganti PIN transaksi / otorisasi',
+                            onTap: () {
+                              _showSecurityBottomSheet(context, auth, 'PIN Otorisasi');
+                            },
+                          ),
+                        ],
                       ),
-                    );
-                  },
-                ),
-              ],
-            ),
 
-            const SizedBox(height: 32),
+                      const SizedBox(height: 24),
 
-            // ── COMPONENT 3: LOGOUT BUTTON ───────────────────────────────────
-            _buildLogoutButton(context, auth),
+                      // Group 3: Bantuan
+                      _buildSettingGroup(
+                        'Bantuan',
+                        [
+                          _buildSettingItem(
+                            Icons.help_outline,
+                            'Pusat Bantuan',
+                            'Hubungi support & customer service',
+                            onTap: () {
+                              _showHelpCenterBottomSheet(context);
+                            },
+                          ),
+                          _buildSettingItem(
+                            Icons.info_outline,
+                            'Tentang Aplikasi',
+                            'Versi 1.0.0',
+                            onTap: () {
+                              showAboutDialog(
+                                context: context,
+                                applicationName: 'POS Oksigen Medis',
+                                applicationVersion: '1.0.0',
+                                applicationIcon: const Icon(
+                                  Icons.medical_services,
+                                  size: 48,
+                                  color: Colors.blue,
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
 
-            const SizedBox(height: 16),
+                      const SizedBox(height: 32),
 
-            // Stable Build Footer text
-            const Center(
-              child: Text(
-                'Oksigen Medis 24 Jam POS v2.4.1 (Stable Build)',
-                style: TextStyle(
-                  color: Color(0xFF8E92A4),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-            const SizedBox(height: 32),
-          ],
-        ),
+                      // ── COMPONENT 3: LOGOUT BUTTON ───────────────────────────────────
+                      _buildLogoutButton(context, auth),
+
+                      const SizedBox(height: 16),
+
+                      // Stable Build Footer text
+                      const Center(
+                        child: Text(
+                          'Oksigen Medis 24 Jam POS v2.4.1 (Stable Build)',
+                          style: TextStyle(
+                            color: Color(0xFF8E92A4),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                    ],
+                  ),
       ),
     );
   }
