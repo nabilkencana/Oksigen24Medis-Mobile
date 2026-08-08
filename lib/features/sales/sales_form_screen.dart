@@ -40,13 +40,7 @@ class _SalesFormScreenState extends State<SalesFormScreen> {
         if (!mounted) return;
         final consolidated = _getConsolidatedProducts(warehouseProvider.products);
         for (final cp in consolidated) {
-          if (cp.normalizedName == 'troly') {
-            _selectedQuantities[cp.normalizedName] = 1;
-          } else if (cp.normalizedName == 'selang cannula') {
-            _selectedQuantities[cp.normalizedName] = 2;
-          } else {
-            _selectedQuantities[cp.normalizedName] = 0;
-          }
+          _selectedQuantities[cp.normalizedName] = 0;
         }
         _updateSuggestedPrices(warehouseProvider.products);
       });
@@ -560,6 +554,57 @@ class _SalesFormScreenState extends State<SalesFormScreen> {
                         ));
                       }
                     });
+
+                    if (checkoutItems.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Pilih minimal 1 item penjualan untuk diproses'),
+                          backgroundColor: Colors.redAccent,
+                        ),
+                      );
+                      return;
+                    }
+
+                    // Sync manual price entered in _tarifController with receipt items
+                    final int defaultItemsTotal = receiptItems.fold(0, (sum, item) => sum + (item.price * item.quantity));
+                    if (salesTotal != defaultItemsTotal && receiptItems.isNotEmpty) {
+                      if (receiptItems.length == 1) {
+                        final item = receiptItems[0];
+                        final adjustedUnitPrice = (salesTotal / item.quantity).round();
+                        receiptItems[0] = ReceiptItem(
+                          name: item.name,
+                          price: adjustedUnitPrice,
+                          quantity: item.quantity,
+                          subtitle: item.subtitle,
+                        );
+                      } else {
+                        int currentSum = 0;
+                        for (int i = 0; i < receiptItems.length; i++) {
+                          final item = receiptItems[i];
+                          if (i == receiptItems.length - 1) {
+                            final remainingTotal = salesTotal - currentSum;
+                            final unitPrice = (remainingTotal / item.quantity).round();
+                            receiptItems[i] = ReceiptItem(
+                              name: item.name,
+                              price: unitPrice,
+                              quantity: item.quantity,
+                              subtitle: item.subtitle,
+                            );
+                          } else {
+                            final ratio = defaultItemsTotal > 0 ? (item.price * item.quantity) / defaultItemsTotal : 1 / receiptItems.length;
+                            final itemTotal = (salesTotal * ratio).round();
+                            currentSum += itemTotal;
+                            final unitPrice = (itemTotal / item.quantity).round();
+                            receiptItems[i] = ReceiptItem(
+                              name: item.name,
+                              price: unitPrice,
+                              quantity: item.quantity,
+                              subtitle: item.subtitle,
+                            );
+                          }
+                        }
+                      }
+                    }
 
                     final totalQty = checkoutItems.fold<int>(0, (sum, i) => sum + int.parse(i['quantity'].toString()));
 
