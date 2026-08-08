@@ -16,14 +16,25 @@ import 'package:provider/provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Load environment variables (.env)
-  await dotenv.load(fileName: ".env");
-  // Initialize Firebase (required before using FCM or any Firebase service)
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  // Initialize local + FCM notification service
-  await LocalNotificationService.instance.initialize();
+
+  try {
+    // Load environment variables (.env)
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    debugPrint('Warning: Could not load .env file: $e');
+  }
+
+  try {
+    // Initialize Firebase (required before using FCM or any Firebase service)
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    // Initialize local + FCM notification service
+    await LocalNotificationService.instance.initialize();
+  } catch (e) {
+    debugPrint('Warning: Could not initialize Firebase/Notifications: $e');
+  }
+
   runApp(const Oksigen24App());
 }
 

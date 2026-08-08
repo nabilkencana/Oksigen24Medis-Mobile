@@ -63,9 +63,9 @@ class WarehouseProvider extends ChangeNotifier {
 
     try {
       final futures = await Future.wait([
-        _api.dio.get('/inventory/cylinders', queryParameters: {'limit': 100}),
-        _api.dio.get('/inventory/products', queryParameters: {'limit': 100}),
-        _api.dio.get('/inventory/vendors', queryParameters: {'limit': 100}),
+        _api.dio.get('/inventory/cylinders', queryParameters: {'limit': 1000}),
+        _api.dio.get('/inventory/products', queryParameters: {'limit': 1000}),
+        _api.dio.get('/inventory/vendors', queryParameters: {'limit': 1000}),
       ]);
 
       final cylinderRes = _api.handleResponse(futures[0]);

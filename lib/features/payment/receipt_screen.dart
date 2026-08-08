@@ -690,13 +690,14 @@ class ReceiptScreen extends StatelessWidget {
       'Desember',
     ];
 
-    final dayName = days[dt.weekday % 7];
-    final day = dt.day;
-    final monthName = months[dt.month - 1];
-    final year = dt.year;
+    final local = dt.toLocal();
+    final dayName = days[local.weekday % 7];
+    final day = local.day;
+    final monthName = months[local.month - 1];
+    final year = local.year;
 
-    final hour = dt.hour.toString().padLeft(2, '0');
-    final minute = dt.minute.toString().padLeft(2, '0');
+    final hour = local.hour.toString().padLeft(2, '0');
+    final minute = local.minute.toString().padLeft(2, '0');
 
     return '$dayName, $day $monthName $year • $hour:$minute WIB';
   }

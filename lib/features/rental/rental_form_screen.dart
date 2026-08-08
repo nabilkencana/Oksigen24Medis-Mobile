@@ -699,7 +699,8 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
     }
 
     // Get all unique sizes sorted naturally (e.g. 0.3m3, 1m3, 6m3)
-    final List<String> sizes = stockBySize.keys.toList()
+    final Set<String> allSizes = {'1m3', '6m3', ...stockBySize.keys, ..._cylinderQty.keys};
+    final List<String> sizes = allSizes.toList()
       ..sort((a, b) {
         // Sort by numeric value extracted from size string
         final numA = double.tryParse(a.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0;

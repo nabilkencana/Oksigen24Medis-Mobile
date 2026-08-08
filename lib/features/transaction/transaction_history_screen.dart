@@ -311,7 +311,18 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
       }
     }
 
-    final dateStr = tx['createdAt'].toString().substring(0, 16).replaceAll('T', ', ');
+    String dateStr = '';
+    try {
+      final dt = DateTime.parse(tx['createdAt'].toString()).toLocal();
+      final year = dt.year.toString().padLeft(4, '0');
+      final month = dt.month.toString().padLeft(2, '0');
+      final day = dt.day.toString().padLeft(2, '0');
+      final hour = dt.hour.toString().padLeft(2, '0');
+      final minute = dt.minute.toString().padLeft(2, '0');
+      dateStr = '$year-$month-$day, $hour:$minute';
+    } catch (_) {
+      dateStr = tx['createdAt'].toString().substring(0, 16).replaceAll('T', ', ');
+    }
 
     int sewaDaysVal = 0;
     if (type == 'Sewa Tabung' && original != null) {
