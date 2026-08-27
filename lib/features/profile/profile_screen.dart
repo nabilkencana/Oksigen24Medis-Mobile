@@ -4,7 +4,6 @@ import 'package:oksigen24medis_mobile2/core/theme/app_theme.dart';
 import 'package:oksigen24medis_mobile2/core/state/auth_provider.dart';
 import 'package:oksigen24medis_mobile2/core/services/api_service.dart';
 import 'package:oksigen24medis_mobile2/core/services/printer_service.dart';
-import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -103,7 +102,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     return _buildSettingItem(
                                       Icons.print,
                                       'Printer Struk Bluetooth',
-                                      connected ? 'Terhubung (EPPOS-58)' : 'Ketuk untuk menghubungkan',
+                                      connected
+                                          ? 'Terhubung (${PrinterService().selectedDevice?.name ?? "Printer"})'
+                                          : 'Ketuk untuk menghubungkan',
                                       trailing: Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
@@ -231,7 +232,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               return _buildSettingItem(
                                 Icons.print,
                                 'Printer Struk Bluetooth',
-                                connected ? 'Terhubung (EPPOS-58)' : 'Ketuk untuk menghubungkan',
+                                connected
+                                    ? 'Terhubung (${PrinterService().selectedDevice?.name ?? "Printer"})'
+                                    : 'Ketuk untuk menghubungkan',
                                 trailing: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
@@ -770,7 +773,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _showPrinterScanDialog(BuildContext context) {
     final printer = PrinterService();
-    Future<List<BluetoothInfo>>? devicesFuture;
+    Future<List<AppPrinterDevice>>? devicesFuture;
 
     return showDialog(
       context: context,
@@ -788,7 +791,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Container(
                 color: Colors.white,
                 padding: const EdgeInsets.all(24),
-                child: FutureBuilder<List<BluetoothInfo>>(
+                child: FutureBuilder<List<AppPrinterDevice>>(
                   future: devicesFuture,
                   builder: (context, snapshot) {
                     final isLoading = snapshot.connectionState == ConnectionState.waiting;
@@ -833,7 +836,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 16),
 
                         if (isLoading) ...[
                           const Center(
@@ -847,14 +850,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   Text(
                                     'Memindai printer Bluetooth...',
                                     style: TextStyle(
-                                      color: AppColors.textSecondary,
+                                      color: AppColors.textPrimary,
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                   SizedBox(height: 4),
                                   Text(
-                                    'Pastikan Bluetooth perangkat Anda aktif',
+                                    'Mencari printer thermal di sekitar (BLE & Classic)',
                                     style: TextStyle(
                                       color: AppColors.textSecondary,
                                       fontSize: 12,
@@ -867,7 +870,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ] else if (devices.isEmpty) ...[
                           Center(
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 24.0),
+                              padding: const EdgeInsets.symmetric(vertical: 20.0),
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
@@ -896,7 +899,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   const Padding(
                                     padding: EdgeInsets.symmetric(horizontal: 16.0),
                                     child: Text(
-                                      'Pastikan printer thermal Bluetooth Anda sudah dinyalakan dan berpasangan (paired) di pengaturan Bluetooth HP Anda.',
+                                      'Pastikan printer thermal (RPP02N / Eppos) sudah menyala dan Bluetooth HP aktif. Pada iPhone, nyalakan printer lalu tekan Pindai Ulang.',
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                         color: AppColors.textSecondary,
@@ -911,7 +914,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ] else ...[
                           const Text(
-                            'Pilih perangkat printer berpasangan:',
+                            'Pilih perangkat printer bluetooth:',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -927,6 +930,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               separatorBuilder: (context, index) => const SizedBox(height: 10),
                               itemBuilder: (context, index) {
                                 final d = devices[index];
+                                final nameLower = d.name.toLowerCase();
+                                final isLikelyPrinter = nameLower.contains('rpp') ||
+                                    nameLower.contains('printer') ||
+                                    nameLower.contains('pos') ||
+                                    nameLower.contains('eppos') ||
+                                    nameLower.contains('mpt') ||
+                                    nameLower.contains('bt');
+
                                 return InkWell(
                                   onTap: () async {
                                     Navigator.pop(context);
@@ -936,13 +947,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         backgroundColor: const Color(0xFF0055FF),
                                       ),
                                     );
-                                    final success = await printer.connect(d.macAdress);
+                                    final success = await printer.connect(d);
                                     if (context.mounted) {
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         SnackBar(
                                           content: Text(success
                                               ? 'Berhasil terhubung ke ${d.name}'
-                                              : 'Gagal terhubung ke ${d.name}'),
+                                              : 'Gagal terhubung ke ${d.name}. Pastikan printer menyala.'),
                                           backgroundColor: success
                                               ? const Color(0xFF00A67E)
                                               : const Color(0xFFEF4444),
@@ -956,7 +967,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     decoration: BoxDecoration(
                                       color: Colors.white,
                                       borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+                                      border: Border.all(
+                                        color: isLikelyPrinter
+                                            ? const Color(0xFF86EFAC)
+                                            : const Color(0xFFE2E8F0),
+                                        width: 1.5,
+                                      ),
                                       boxShadow: const [
                                         BoxShadow(
                                           color: Color(0x02000000),
@@ -970,12 +986,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         Container(
                                           padding: const EdgeInsets.all(10),
                                           decoration: BoxDecoration(
-                                            color: const Color(0xFFE6EEFF),
+                                            color: isLikelyPrinter
+                                                ? const Color(0xFFDCFCE7)
+                                                : const Color(0xFFE6EEFF),
                                             borderRadius: BorderRadius.circular(12),
                                           ),
-                                          child: const Icon(
+                                          child: Icon(
                                             Icons.print_rounded,
-                                            color: Color(0xFF0055FF),
+                                            color: isLikelyPrinter
+                                                ? const Color(0xFF15803D)
+                                                : const Color(0xFF0055FF),
                                             size: 20,
                                           ),
                                         ),
@@ -984,17 +1004,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                           child: Column(
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
-                                              Text(
-                                                d.name.isNotEmpty ? d.name : 'Printer Tanpa Nama',
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  color: AppColors.textPrimary,
-                                                  fontSize: 14,
-                                                ),
+                                              Row(
+                                                children: [
+                                                  Expanded(
+                                                    child: Text(
+                                                      d.name.isNotEmpty ? d.name : 'Printer Tanpa Nama',
+                                                      style: const TextStyle(
+                                                        fontWeight: FontWeight.bold,
+                                                        color: AppColors.textPrimary,
+                                                        fontSize: 14,
+                                                      ),
+                                                      maxLines: 1,
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                  ),
+                                                  if (isLikelyPrinter)
+                                                    Container(
+                                                      margin: const EdgeInsets.only(left: 6),
+                                                      padding: const EdgeInsets.symmetric(
+                                                        horizontal: 6,
+                                                        vertical: 2,
+                                                      ),
+                                                      decoration: BoxDecoration(
+                                                        color: const Color(0xFF16A34A),
+                                                        borderRadius: BorderRadius.circular(6),
+                                                      ),
+                                                      child: const Text(
+                                                        'PRINTER',
+                                                        style: TextStyle(
+                                                          fontSize: 9,
+                                                          fontWeight: FontWeight.bold,
+                                                          color: Colors.white,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                ],
                                               ),
                                               const SizedBox(height: 4),
                                               Text(
-                                                d.macAdress,
+                                                d.address,
                                                 style: const TextStyle(
                                                   color: AppColors.textSecondary,
                                                   fontSize: 11,
@@ -1004,6 +1052,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                             ],
                                           ),
                                         ),
+                                        const SizedBox(width: 8),
                                         Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                           decoration: BoxDecoration(

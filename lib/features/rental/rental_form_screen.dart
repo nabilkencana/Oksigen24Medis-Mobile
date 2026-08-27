@@ -38,7 +38,8 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
   TextEditingController _getPriceController(String key, int defaultValue) {
     if (!_priceControllers.containsKey(key)) {
       _priceControllers[key] = TextEditingController(
-          text: defaultValue == 0 ? '' : _formatCurrency(defaultValue));
+        text: defaultValue == 0 ? '' : _formatCurrency(defaultValue),
+      );
     }
     return _priceControllers[key]!;
   }
@@ -82,7 +83,9 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
 
   // ── Customer Picker Bottom Sheet ───────────────────────────────────────────
   Future<void> _showCustomerPicker(
-      BuildContext context, TransactionProvider tx) async {
+    BuildContext context,
+    TransactionProvider tx,
+  ) async {
     // 1. Fetch customers in background if empty
     if (tx.customers.isEmpty && !tx.isCustomerLoading) {
       tx.fetchCustomers();
@@ -105,26 +108,28 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
                 final allCustomers = tx.customers;
                 final isLoading = tx.isCustomerLoading;
                 final filtered = allCustomers
-                    .where((c) =>
-                        (c['name'] ?? '')
-                            .toString()
-                            .toLowerCase()
-                            .contains(query) ||
-                        (c['phone'] ?? '')
-                            .toString()
-                            .toLowerCase()
-                            .contains(query))
+                    .where(
+                      (c) =>
+                          (c['name'] ?? '').toString().toLowerCase().contains(
+                            query,
+                          ) ||
+                          (c['phone'] ?? '').toString().toLowerCase().contains(
+                            query,
+                          ),
+                    )
                     .toList();
 
                 return Padding(
                   padding: EdgeInsets.only(
-                      bottom: MediaQuery.of(ctx).viewInsets.bottom),
+                    bottom: MediaQuery.of(ctx).viewInsets.bottom,
+                  ),
                   child: Container(
                     height: MediaQuery.of(ctx).size.height * 0.78,
                     decoration: const BoxDecoration(
                       color: AppColors.surface,
-                      borderRadius:
-                          BorderRadius.vertical(top: Radius.circular(20)),
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(20),
+                      ),
                     ),
                     child: Column(
                       children: [
@@ -143,13 +148,17 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
                           padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                           child: Row(
                             children: [
-                              const Icon(Icons.people_outline,
-                                  color: AppColors.primary, size: 22),
+                              const Icon(
+                                Icons.people_outline,
+                                color: AppColors.primary,
+                                size: 22,
+                              ),
                               const SizedBox(width: 8),
                               Text(
                                 'Pilih Pelanggan',
-                                style: AppTextStyles.h3
-                                    .copyWith(fontWeight: FontWeight.w700),
+                                style: AppTextStyles.h3.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
                               const Spacer(),
                               TextButton.icon(
@@ -162,7 +171,9 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
                                 style: TextButton.styleFrom(
                                   foregroundColor: AppColors.primary,
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 4),
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
                                 ),
                               ),
                             ],
@@ -180,7 +191,9 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
                               filled: true,
                               fillColor: AppColors.background,
                               contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 10),
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(10),
                                 borderSide: BorderSide.none,
@@ -203,112 +216,116 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
                           child: isLoading
                               ? const Center(
                                   child: CircularProgressIndicator(
-                                      color: AppColors.primary),
+                                    color: AppColors.primary,
+                                  ),
                                 )
                               : filtered.isEmpty
-                                  ? Center(
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const Icon(
-                                              Icons.person_search_outlined,
-                                              size: 48,
-                                              color: AppColors.textSecondary),
-                                          const SizedBox(height: 8),
-                                          Text(
-                                            allCustomers.isEmpty
-                                                ? (tx.error != null
-                                                    ? 'Gagal memuat data:\n${tx.error}'
-                                                    : 'Belum ada pelanggan')
-                                                : 'Pelanggan tidak ditemukan',
-                                            textAlign: TextAlign.center,
-                                            style: AppTextStyles.bodyMedium
-                                                .copyWith(
-                                                    color: tx.error != null
-                                                        ? AppColors.error
-                                                        : AppColors.textSecondary),
-                                          ),
-                                          if (allCustomers.isEmpty) ...[
-                                            const SizedBox(height: 12),
-                                            TextButton.icon(
-                                              onPressed: () {
-                                                tx.fetchCustomers();
-                                              },
-                                              icon: const Icon(Icons.refresh,
-                                                  size: 16),
-                                              label: const Text('Muat Ulang'),
-                                            ),
-                                          ],
-                                        ],
+                              ? Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.person_search_outlined,
+                                        size: 48,
+                                        color: AppColors.textSecondary,
                                       ),
-                                    )
-                                  : ListView.separated(
-                                      padding: EdgeInsets.zero,
-                                      itemCount: filtered.length,
-                                      separatorBuilder: (_, _) =>
-                                          const Divider(height: 1),
-                                      itemBuilder: (_, i) {
-                                        final c = filtered[i];
-                                        final name =
-                                            c['name']?.toString() ??
-                                                'Pelanggan';
-                                        final phone =
-                                            c['phone']?.toString() ?? '';
-                                        final isSelected =
-                                            c['id']?.toString() ==
-                                                _selectedCustomerId;
-                                        return ListTile(
-                                          leading: CircleAvatar(
-                                            backgroundColor: isSelected
-                                                ? AppColors.primary
-                                                : AppColors.primary
-                                                    .withAlpha(20),
-                                            radius: 20,
-                                            child: Text(
-                                              name.isNotEmpty
-                                                  ? name[0].toUpperCase()
-                                                  : '?',
-                                              style: TextStyle(
-                                                color: isSelected
-                                                    ? Colors.white
-                                                    : AppColors.primary,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 14,
-                                              ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        allCustomers.isEmpty
+                                            ? (tx.error != null
+                                                  ? 'Gagal memuat data:\n${tx.error}'
+                                                  : 'Belum ada pelanggan')
+                                            : 'Pelanggan tidak ditemukan',
+                                        textAlign: TextAlign.center,
+                                        style: AppTextStyles.bodyMedium
+                                            .copyWith(
+                                              color: tx.error != null
+                                                  ? AppColors.error
+                                                  : AppColors.textSecondary,
                                             ),
+                                      ),
+                                      if (allCustomers.isEmpty) ...[
+                                        const SizedBox(height: 12),
+                                        TextButton.icon(
+                                          onPressed: () {
+                                            tx.fetchCustomers();
+                                          },
+                                          icon: const Icon(
+                                            Icons.refresh,
+                                            size: 16,
                                           ),
-                                          title: Text(
-                                            name,
-                                            style: AppTextStyles.bodyMedium
-                                                .copyWith(
+                                          label: const Text('Muat Ulang'),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                )
+                              : ListView.separated(
+                                  padding: EdgeInsets.zero,
+                                  itemCount: filtered.length,
+                                  separatorBuilder: (_, _) =>
+                                      const Divider(height: 1),
+                                  itemBuilder: (_, i) {
+                                    final c = filtered[i];
+                                    final name =
+                                        c['name']?.toString() ?? 'Pelanggan';
+                                    final phone = c['phone']?.toString() ?? '';
+                                    final isSelected =
+                                        c['id']?.toString() ==
+                                        _selectedCustomerId;
+                                    return ListTile(
+                                      leading: CircleAvatar(
+                                        backgroundColor: isSelected
+                                            ? AppColors.primary
+                                            : AppColors.primary.withAlpha(20),
+                                        radius: 20,
+                                        child: Text(
+                                          name.isNotEmpty
+                                              ? name[0].toUpperCase()
+                                              : '?',
+                                          style: TextStyle(
+                                            color: isSelected
+                                                ? Colors.white
+                                                : AppColors.primary,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ),
+                                      title: Text(
+                                        name,
+                                        style: AppTextStyles.bodyMedium
+                                            .copyWith(
                                               fontWeight: FontWeight.w600,
                                               color: isSelected
                                                   ? AppColors.primary
                                                   : AppColors.textPrimary,
                                             ),
-                                          ),
-                                          subtitle: phone.isNotEmpty
-                                              ? Text(phone,
-                                                  style: AppTextStyles.caption)
-                                              : null,
-                                          trailing: isSelected
-                                              ? const Icon(
-                                                  Icons.check_circle_rounded,
-                                                  color: AppColors.primary,
-                                                  size: 20,
-                                                )
-                                              : null,
-                                          onTap: () {
-                                            setState(() {
-                                              _selectedCustomerId =
-                                                  c['id']?.toString();
-                                              _searchController.text = name;
-                                            });
-                                            Navigator.of(ctx).pop();
-                                          },
-                                        );
+                                      ),
+                                      subtitle: phone.isNotEmpty
+                                          ? Text(
+                                              phone,
+                                              style: AppTextStyles.caption,
+                                            )
+                                          : null,
+                                      trailing: isSelected
+                                          ? const Icon(
+                                              Icons.check_circle_rounded,
+                                              color: AppColors.primary,
+                                              size: 20,
+                                            )
+                                          : null,
+                                      onTap: () {
+                                        setState(() {
+                                          _selectedCustomerId = c['id']
+                                              ?.toString();
+                                          _searchController.text = name;
+                                        });
+                                        Navigator.of(ctx).pop();
                                       },
-                                    ),
+                                    );
+                                  },
+                                ),
                         ),
                       ],
                     ),
@@ -698,8 +715,15 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
       }
     }
 
-    // Get all unique sizes sorted naturally (e.g. 0.3m3, 1m3, 6m3)
-    final Set<String> allSizes = {'1m3', '6m3', ...stockBySize.keys, ..._cylinderQty.keys};
+    // Get all unique sizes sorted naturally (e.g. 0.3m3, 1m3, 1.5m3, 2m3, 6m3)
+    final Set<String> allSizes = {
+      '1m3',
+      '1.5m3',
+      '2m3',
+      '6m3',
+      ...stockBySize.keys,
+      ..._cylinderQty.keys,
+    };
     final List<String> sizes = allSizes.toList()
       ..sort((a, b) {
         // Sort by numeric value extracted from size string
@@ -726,7 +750,10 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
     }
 
     // Get all unique accessory names (either in stock or currently selected with quantity > 0)
-    final Set<String> allAccessoryNames = {...stockByAccessory.keys, ..._accessoryQty.keys};
+    final Set<String> allAccessoryNames = {
+      ...stockByAccessory.keys,
+      ..._accessoryQty.keys,
+    };
     final List<String> sortedAccessories = allAccessoryNames.toList()..sort();
 
     // Ensure qty map has an entry for every accessory
@@ -750,7 +777,10 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.qr_code_scanner_rounded, color: AppColors.primary),
+            icon: const Icon(
+              Icons.qr_code_scanner_rounded,
+              color: AppColors.primary,
+            ),
             onPressed: () => _openScanner(context, warehouseProvider),
           ),
         ],
@@ -841,7 +871,11 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
                     _buildCylinderSection(sizes, stockBySize),
                     if (sizes.isNotEmpty && sortedAccessories.isNotEmpty)
                       const SizedBox(height: 20),
-                    _buildAccessorySection(sortedAccessories, stockByAccessory, stockBySize),
+                    _buildAccessorySection(
+                      sortedAccessories,
+                      stockByAccessory,
+                      stockBySize,
+                    ),
                   ],
 
                   const SizedBox(height: 24),
@@ -927,8 +961,11 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.person_outline,
-                      size: 18, color: AppColors.textSecondary),
+                  const Icon(
+                    Icons.person_outline,
+                    size: 18,
+                    color: AppColors.textSecondary,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -947,11 +984,16 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: AppColors.primary),
+                        strokeWidth: 2,
+                        color: AppColors.primary,
+                      ),
                     )
                   else
-                    const Icon(Icons.expand_more,
-                        color: AppColors.textSecondary, size: 20),
+                    const Icon(
+                      Icons.expand_more,
+                      color: AppColors.textSecondary,
+                      size: 20,
+                    ),
                 ],
               ),
             ),
@@ -1019,7 +1061,9 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
           children: [
             Icon(
               Icons.assignment_turned_in_outlined,
-              color: _isFirstRentalContract ? AppColors.primary : AppColors.textSecondary,
+              color: _isFirstRentalContract
+                  ? AppColors.primary
+                  : AppColors.textSecondary,
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -1027,7 +1071,9 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
                 'Kontrak Sewa Pertama',
                 style: AppTextStyles.bodyLarge.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: _isFirstRentalContract ? AppColors.primary : AppColors.textPrimary,
+                  color: _isFirstRentalContract
+                      ? AppColors.primary
+                      : AppColors.textPrimary,
                 ),
               ),
             ),
@@ -1076,7 +1122,9 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
 
       final cylLabel = (size == '6m3' || size.toLowerCase().contains('besar'))
           ? 'Tabung Oksigen Besar ($size)'
-          : 'Tabung Oksigen Kecil ($size)';
+          : (size == '1.5m3' || size == '2m3' || size == '1,5m3')
+              ? 'Tabung Oksigen Sedang ($size)'
+              : 'Tabung Oksigen Kecil ($size)';
 
       rows.add(
         _buildItemStepper(cylLabel, stock, qty, (v) {
@@ -1380,7 +1428,12 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
     final deposit = _computedDeposit;
     final total = tarif + deposit;
 
-    Widget summaryRow(String label, int value, {bool bold = false, Color? color}) {
+    Widget summaryRow(
+      String label,
+      int value, {
+      bool bold = false,
+      Color? color,
+    }) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: Row(
@@ -1433,7 +1486,12 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
           summaryRow('Total Biaya Sewa', tarif),
           summaryRow('Total Uang Jaminan', deposit),
           const Divider(height: 20, color: AppColors.border),
-          summaryRow('Total Tagihan', total, bold: true, color: AppColors.primary),
+          summaryRow(
+            'Total Tagihan',
+            total,
+            bold: true,
+            color: AppColors.primary,
+          ),
         ],
       ),
     );
@@ -1548,9 +1606,12 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
                       if (qty > 0) {
                         final picked = availableAccessories
                             .where((c) {
-                              final accName = c['oxygenType']?['name']?.toString() ?? '';
+                              final accName =
+                                  c['oxygenType']?['name']?.toString() ?? '';
                               if (name == 'Sewa Regulator') {
-                                return accName.toLowerCase().contains('regulator');
+                                return accName.toLowerCase().contains(
+                                  'regulator',
+                                );
                               }
                               return accName == name;
                             })
@@ -1583,7 +1644,9 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
                       if (qty > 0) {
                         final cylLabel = (size == '6m3' || size.toLowerCase().contains('besar'))
                             ? 'Tabung Oksigen Besar ($size)'
-                            : 'Tabung Oksigen Kecil ($size)';
+                            : (size == '1.5m3' || size == '2m3' || size == '1,5m3')
+                                ? 'Tabung Oksigen Sedang ($size)'
+                                : 'Tabung Oksigen Kecil ($size)';
                         final price = _cylinderRentalPrices[size] ?? 0;
                         receiptItems.add(
                           ReceiptItem(
@@ -1694,10 +1757,16 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
   bool _isAccessoryAsset(String serial, String size) {
     final s = serial.toUpperCase();
     final sz = size.toUpperCase();
-    return s.startsWith('REG-') || s.startsWith('TRL-') || s.startsWith('ACC-') || sz == 'PCS';
+    return s.startsWith('REG-') ||
+        s.startsWith('TRL-') ||
+        s.startsWith('ACC-') ||
+        sz == 'PCS';
   }
 
-  Future<void> _openScanner(BuildContext context, WarehouseProvider provider) async {
+  Future<void> _openScanner(
+    BuildContext context,
+    WarehouseProvider provider,
+  ) async {
     final status = await Permission.camera.request();
     if (status.isGranted) {
       if (!context.mounted) return;
@@ -1732,8 +1801,9 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
 
     // 1. Check if it's a product (sale-only)
     final prod = provider.products.firstWhere(
-      (p) => p['sku']?.toString().toLowerCase() == cleanCodeLower ||
-             p['name']?.toString().toLowerCase() == cleanCodeLower,
+      (p) =>
+          p['sku']?.toString().toLowerCase() == cleanCodeLower ||
+          p['name']?.toString().toLowerCase() == cleanCodeLower,
       orElse: () => null,
     );
     if (prod != null) {
@@ -1748,14 +1818,25 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
     );
 
     if (cyl != null) {
-      final isAcc = _isAccessoryAsset(cyl['serialNumber']?.toString() ?? '', cyl['size']?.toString() ?? '');
+      final isAcc = _isAccessoryAsset(
+        cyl['serialNumber']?.toString() ?? '',
+        cyl['size']?.toString() ?? '',
+      );
       if (isAcc) {
         final otName = cyl['oxygenType']?['name'] ?? 'Aksesoris Sewa';
         if (_accessoryQty.containsKey(otName)) {
-          final int stock = provider.rentableAccessories.where((c) => (c['oxygenType']?['name'] ?? 'Aksesoris Sewa') == otName && c['status'] == 'AVAILABLE').length;
+          final int stock = provider.rentableAccessories
+              .where(
+                (c) =>
+                    (c['oxygenType']?['name'] ?? 'Aksesoris Sewa') == otName &&
+                    c['status'] == 'AVAILABLE',
+              )
+              .length;
           final int currentQty = _accessoryQty[otName] ?? 0;
           if (currentQty >= stock) {
-            _showErrorSnackBar('Stok sewa untuk $otName sudah mencapai batas maksimum!');
+            _showErrorSnackBar(
+              'Stok sewa untuk $otName sudah mencapai batas maksimum!',
+            );
           } else {
             setState(() {
               _accessoryQty[otName] = currentQty + 1;
@@ -1764,25 +1845,38 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
             _showSuccessSnackBar('Berhasil menambahkan sewa: $otName');
           }
         } else {
-          _showErrorSnackBar('Aksesoris sewa dengan tipe $otName tidak ditemukan di form!');
+          _showErrorSnackBar(
+            'Aksesoris sewa dengan tipe $otName tidak ditemukan di form!',
+          );
         }
       } else {
         // Rentable cylinder
         final size = cyl['size']?.toString() ?? '1m3';
         if (_cylinderQty.containsKey(size)) {
-          final int stock = provider.actualCylinders.where((c) => (c['size'] ?? '1m3') == size && c['status'] == 'AVAILABLE').length;
+          final int stock = provider.actualCylinders
+              .where(
+                (c) =>
+                    (c['size'] ?? '1m3') == size && c['status'] == 'AVAILABLE',
+              )
+              .length;
           final int currentQty = _cylinderQty[size] ?? 0;
           if (currentQty >= stock) {
-            _showErrorSnackBar('Stok sewa untuk tabung $size sudah mencapai batas maksimum!');
+            _showErrorSnackBar(
+              'Stok sewa untuk tabung $size sudah mencapai batas maksimum!',
+            );
           } else {
             setState(() {
               _cylinderQty[size] = currentQty + 1;
             });
             _updateSuggestedPrices(stockBySize);
-            _showSuccessSnackBar('Berhasil menambahkan sewa: Tabung Oksigen $size');
+            _showSuccessSnackBar(
+              'Berhasil menambahkan sewa: Tabung Oksigen $size',
+            );
           }
         } else {
-          _showErrorSnackBar('Tabung dengan ukuran $size tidak ditemukan di form!');
+          _showErrorSnackBar(
+            'Tabung dengan ukuran $size tidak ditemukan di form!',
+          );
         }
       }
       return;
@@ -1792,19 +1886,29 @@ class _RentalFormScreenState extends State<RentalFormScreen> {
     if (cleanCodeLower.startsWith('cyl-')) {
       final size = cleanCode.substring(4);
       if (_cylinderQty.containsKey(size)) {
-        final int stock = provider.actualCylinders.where((c) => (c['size'] ?? '1m3') == size && c['status'] == 'AVAILABLE').length;
+        final int stock = provider.actualCylinders
+            .where(
+              (c) => (c['size'] ?? '1m3') == size && c['status'] == 'AVAILABLE',
+            )
+            .length;
         final int currentQty = _cylinderQty[size] ?? 0;
         if (currentQty >= stock) {
-          _showErrorSnackBar('Stok sewa untuk tabung $size sudah mencapai batas maksimum!');
+          _showErrorSnackBar(
+            'Stok sewa untuk tabung $size sudah mencapai batas maksimum!',
+          );
         } else {
           setState(() {
             _cylinderQty[size] = currentQty + 1;
           });
           _updateSuggestedPrices(stockBySize);
-          _showSuccessSnackBar('Berhasil menambahkan sewa: Tabung Oksigen $size');
+          _showSuccessSnackBar(
+            'Berhasil menambahkan sewa: Tabung Oksigen $size',
+          );
         }
       } else {
-        _showErrorSnackBar('Tabung dengan ukuran $size tidak ditemukan di form!');
+        _showErrorSnackBar(
+          'Tabung dengan ukuran $size tidak ditemukan di form!',
+        );
       }
       return;
     }

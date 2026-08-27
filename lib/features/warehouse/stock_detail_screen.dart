@@ -111,13 +111,12 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
             if (widget.sku.contains('RNT-ACC') || widget.sku.contains('ACC')) {
               // Accessory match
               final otName = c['oxygenType']?['name']?.toString() ?? 'Aksesoris Sewa';
-              return otName.toLowerCase() == widget.title.toLowerCase();
+              return otName.toLowerCase() == widget.title.toLowerCase() || widget.title.toLowerCase().contains(otName.toLowerCase());
             } else {
               // Cylinder match
-              final otNameRaw = c['oxygenType']?['name']?.toString() ?? 'Oksigen Medis';
-              final otName = _mapOxygenTypeName(otNameRaw);
-              final size = c['size']?.toString() ?? '1m3';
-              return '$otName ($size)'.toLowerCase() == widget.title.toLowerCase();
+              final size = c['size']?.toString().toLowerCase() ?? '';
+              final skuSize = widget.sku.replaceAll('SKU: CYL-', '').trim().toLowerCase();
+              return size.isNotEmpty && (size == skuSize || widget.title.toLowerCase().contains('($size)'));
             }
           }
         }).toList();
@@ -144,12 +143,11 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
         final matchingCylinders = allCylinders.where((c) {
           if (widget.sku.contains('RNT-ACC') || widget.sku.contains('ACC')) {
             final otName = c['oxygenType']?['name'] ?? 'Aksesoris Sewa';
-            return otName.toLowerCase() == widget.title.toLowerCase();
+            return otName.toLowerCase() == widget.title.toLowerCase() || widget.title.toLowerCase().contains(otName.toLowerCase());
           } else {
-            final otNameRaw = c['oxygenType']?['name'] ?? 'Oksigen Medis';
-            final otName = _mapOxygenTypeName(otNameRaw);
-            final size = c['size'] ?? '1m3';
-            return '$otName ($size)'.toLowerCase() == widget.title.toLowerCase();
+            final size = c['size']?.toString().toLowerCase() ?? '';
+            final skuSize = widget.sku.replaceAll('SKU: CYL-', '').trim().toLowerCase();
+            return size.isNotEmpty && (size == skuSize || widget.title.toLowerCase().contains('($size)'));
           }
         }).toList();
 
@@ -553,12 +551,11 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
     final matchingCylinders = allCylinders.where((c) {
       if (widget.sku.contains('RNT-ACC') || widget.sku.contains('ACC')) {
         final otName = c['oxygenType']?['name'] ?? 'Aksesoris Sewa';
-        return otName.toLowerCase() == widget.title.toLowerCase();
+        return otName.toLowerCase() == widget.title.toLowerCase() || widget.title.toLowerCase().contains(otName.toLowerCase());
       } else {
-        final otNameRaw = c['oxygenType']?['name'] ?? 'Oksigen Medis';
-        final otName = _mapOxygenTypeName(otNameRaw);
-        final size = c['size'] ?? '1m3';
-        return '$otName ($size)'.toLowerCase() == widget.title.toLowerCase();
+        final size = c['size']?.toString().toLowerCase() ?? '';
+        final skuSize = widget.sku.replaceAll('SKU: CYL-', '').trim().toLowerCase();
+        return size.isNotEmpty && (size == skuSize || widget.title.toLowerCase().contains('($size)'));
       }
     }).toList();
 
@@ -1291,12 +1288,11 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
       final matchingCyl = allCyl.firstWhere((c) {
         if (isAccessory) {
           final otName = c['oxygenType']?['name'] ?? 'Aksesoris Sewa';
-          return otName.toLowerCase() == widget.title.toLowerCase();
+          return otName.toLowerCase() == widget.title.toLowerCase() || widget.title.toLowerCase().contains(otName.toLowerCase());
         } else {
-          final otNameRaw = c['oxygenType']?['name'] ?? 'Oksigen Medis';
-          final otName = _mapOxygenTypeName(otNameRaw);
-          final size = c['size'] ?? '1m3';
-          return '$otName ($size)'.toLowerCase() == widget.title.toLowerCase();
+          final size = c['size']?.toString().toLowerCase() ?? '';
+          final skuSize = widget.sku.replaceAll('SKU: CYL-', '').trim().toLowerCase();
+          return size.isNotEmpty && (size == skuSize || widget.title.toLowerCase().contains('($size)'));
         }
       }, orElse: () => null);
 

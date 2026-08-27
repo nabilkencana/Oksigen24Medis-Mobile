@@ -45,6 +45,9 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
       if (size.toLowerCase().contains('6m3') || size.toLowerCase().contains('besar')) {
         return 'Tabung Oksigen Besar';
       }
+      if (size.toLowerCase().contains('1.5m3') || size.toLowerCase().contains('1,5m3') || size.toLowerCase().contains('2m3')) {
+        return 'Tabung Oksigen Sedang';
+      }
       return 'Tabung Oksigen Kecil';
     }
     return name;

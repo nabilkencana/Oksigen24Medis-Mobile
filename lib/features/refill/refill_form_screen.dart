@@ -54,6 +54,9 @@ class _RefillFormScreenState extends State<RefillFormScreen> {
       '0.3m3': 30000,
       '0.5m3': 40000,
       '1m3': 50000,
+      '1.5m3': 75000,
+      '1,5m3': 75000,
+      '2m3': 75000,
       '6m3': 165000,
     };
     int total = 0;
@@ -78,7 +81,7 @@ class _RefillFormScreenState extends State<RefillFormScreen> {
     }
 
     // Standard pre-defined sizes for refill
-    final Set<String> allSizes = {'0.3m3', '0.5m3', '1m3', '6m3'};
+    final Set<String> allSizes = {'0.3m3', '0.5m3', '1m3', '1.5m3', '2m3', '6m3'};
     
     // Add any other sizes found dynamically in the database
     for (final cyl in warehouseProvider.actualCylinders) {
@@ -284,7 +287,9 @@ class _RefillFormScreenState extends State<RefillFormScreen> {
       if (i > 0) rows.add(const Divider(color: AppColors.border, height: 1));
       final cylLabel = (size == '6m3' || size.toLowerCase().contains('besar'))
           ? 'Tabung Oksigen Besar ($size)'
-          : 'Tabung Oksigen Kecil ($size)';
+          : (size == '1.5m3' || size == '2m3' || size == '1,5m3')
+              ? 'Tabung Oksigen Sedang ($size)'
+              : 'Tabung Oksigen Kecil ($size)';
       rows.add(
         _buildItemStepper(cylLabel, stock, qty, (v) {
           setState(() => _cylinderQty[size] = v);
@@ -580,7 +585,9 @@ class _RefillFormScreenState extends State<RefillFormScreen> {
                         // Untuk struk: tampilkan per ukuran
                         final rcLabel = (size == '6m3' || size.toLowerCase().contains('besar'))
                             ? 'Tabung Oksigen Besar ($size)'
-                            : 'Tabung Oksigen Kecil ($size)';
+                            : (size == '1.5m3' || size == '2m3' || size == '1,5m3')
+                                ? 'Tabung Oksigen Sedang ($size)'
+                                : 'Tabung Oksigen Kecil ($size)';
                         receiptItems.add(ReceiptItem(
                           name: 'Refill $rcLabel',
                           price: pricePerUnit * qty,

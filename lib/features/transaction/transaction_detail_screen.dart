@@ -7,7 +7,6 @@ import 'package:oksigen24medis_mobile2/core/services/pdf_service.dart';
 import 'package:oksigen24medis_mobile2/features/payment/receipt_item.dart';
 import 'package:oksigen24medis_mobile2/core/state/transaction_provider.dart';
 import 'package:oksigen24medis_mobile2/core/state/auth_provider.dart';
-import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 import 'package:provider/provider.dart';
 
 class TransactionDetailScreen extends StatelessWidget {
@@ -779,7 +778,7 @@ class TransactionDetailScreen extends StatelessWidget {
 
   void _showPrinterScanDialog(BuildContext context, VoidCallback onConnected) {
     final printer = PrinterService();
-    Future<List<BluetoothInfo>>? devicesFuture;
+    Future<List<AppPrinterDevice>>? devicesFuture;
 
     showDialog(
       context: context,
@@ -797,7 +796,7 @@ class TransactionDetailScreen extends StatelessWidget {
               child: Container(
                 color: Colors.white,
                 padding: const EdgeInsets.all(24),
-                child: FutureBuilder<List<BluetoothInfo>>(
+                child: FutureBuilder<List<AppPrinterDevice>>(
                   future: devicesFuture,
                   builder: (context, snapshot) {
                     final isLoading = snapshot.connectionState == ConnectionState.waiting;
@@ -842,7 +841,7 @@ class TransactionDetailScreen extends StatelessWidget {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 16),
 
                         if (isLoading) ...[
                           const Center(
@@ -856,14 +855,14 @@ class TransactionDetailScreen extends StatelessWidget {
                                   Text(
                                     'Memindai printer Bluetooth...',
                                     style: TextStyle(
-                                      color: AppColors.textSecondary,
+                                      color: AppColors.textPrimary,
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                   SizedBox(height: 4),
                                   Text(
-                                    'Pastikan Bluetooth perangkat Anda aktif',
+                                    'Mencari printer thermal di sekitar (BLE & Classic)',
                                     style: TextStyle(
                                       color: AppColors.textSecondary,
                                       fontSize: 12,
@@ -876,7 +875,7 @@ class TransactionDetailScreen extends StatelessWidget {
                         ] else if (devices.isEmpty) ...[
                           Center(
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 24.0),
+                              padding: const EdgeInsets.symmetric(vertical: 20.0),
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
@@ -905,7 +904,7 @@ class TransactionDetailScreen extends StatelessWidget {
                                   const Padding(
                                     padding: EdgeInsets.symmetric(horizontal: 16.0),
                                     child: Text(
-                                      'Pastikan printer thermal Bluetooth Anda sudah dinyalakan dan berpasangan (paired) di pengaturan Bluetooth HP Anda.',
+                                      'Pastikan printer thermal (RPP02N / Eppos) sudah dinyalakan dan Bluetooth HP aktif.',
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                         color: AppColors.textSecondary,
@@ -920,7 +919,7 @@ class TransactionDetailScreen extends StatelessWidget {
                           ),
                         ] else ...[
                           const Text(
-                            'Pilih perangkat printer berpasangan:',
+                            'Pilih perangkat printer bluetooth:',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -936,6 +935,14 @@ class TransactionDetailScreen extends StatelessWidget {
                               separatorBuilder: (context, index) => const SizedBox(height: 10),
                               itemBuilder: (context, index) {
                                 final d = devices[index];
+                                final nameLower = d.name.toLowerCase();
+                                final isLikelyPrinter = nameLower.contains('rpp') ||
+                                    nameLower.contains('printer') ||
+                                    nameLower.contains('pos') ||
+                                    nameLower.contains('eppos') ||
+                                    nameLower.contains('mpt') ||
+                                    nameLower.contains('bt');
+
                                 return InkWell(
                                   onTap: () async {
                                     Navigator.pop(context);
@@ -945,7 +952,7 @@ class TransactionDetailScreen extends StatelessWidget {
                                         backgroundColor: const Color(0xFF0055FF),
                                       ),
                                     );
-                                    final success = await printer.connect(d.macAdress);
+                                    final success = await printer.connect(d);
                                     if (context.mounted) {
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         SnackBar(
@@ -968,7 +975,12 @@ class TransactionDetailScreen extends StatelessWidget {
                                     decoration: BoxDecoration(
                                       color: Colors.white,
                                       borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+                                      border: Border.all(
+                                        color: isLikelyPrinter
+                                            ? const Color(0xFF86EFAC)
+                                            : const Color(0xFFE2E8F0),
+                                        width: 1.5,
+                                      ),
                                       boxShadow: const [
                                         BoxShadow(
                                           color: Color(0x02000000),
@@ -982,12 +994,16 @@ class TransactionDetailScreen extends StatelessWidget {
                                         Container(
                                           padding: const EdgeInsets.all(10),
                                           decoration: BoxDecoration(
-                                            color: const Color(0xFFE6EEFF),
+                                            color: isLikelyPrinter
+                                                ? const Color(0xFFDCFCE7)
+                                                : const Color(0xFFE6EEFF),
                                             borderRadius: BorderRadius.circular(12),
                                           ),
-                                          child: const Icon(
+                                          child: Icon(
                                             Icons.print_rounded,
-                                            color: Color(0xFF0055FF),
+                                            color: isLikelyPrinter
+                                                ? const Color(0xFF15803D)
+                                                : const Color(0xFF0055FF),
                                             size: 20,
                                           ),
                                         ),
@@ -996,17 +1012,45 @@ class TransactionDetailScreen extends StatelessWidget {
                                           child: Column(
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
-                                              Text(
-                                                d.name.isNotEmpty ? d.name : 'Printer Tanpa Nama',
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  color: AppColors.textPrimary,
-                                                  fontSize: 14,
-                                                ),
+                                              Row(
+                                                children: [
+                                                  Expanded(
+                                                    child: Text(
+                                                      d.name.isNotEmpty ? d.name : 'Printer Tanpa Nama',
+                                                      style: const TextStyle(
+                                                        fontWeight: FontWeight.bold,
+                                                        color: AppColors.textPrimary,
+                                                        fontSize: 14,
+                                                      ),
+                                                      maxLines: 1,
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                  ),
+                                                  if (isLikelyPrinter)
+                                                    Container(
+                                                      margin: const EdgeInsets.only(left: 6),
+                                                      padding: const EdgeInsets.symmetric(
+                                                        horizontal: 6,
+                                                        vertical: 2,
+                                                      ),
+                                                      decoration: BoxDecoration(
+                                                        color: const Color(0xFF16A34A),
+                                                        borderRadius: BorderRadius.circular(6),
+                                                      ),
+                                                      child: const Text(
+                                                        'PRINTER',
+                                                        style: TextStyle(
+                                                          fontSize: 9,
+                                                          fontWeight: FontWeight.bold,
+                                                          color: Colors.white,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                ],
                                               ),
                                               const SizedBox(height: 4),
                                               Text(
-                                                d.macAdress,
+                                                d.address,
                                                 style: const TextStyle(
                                                   color: AppColors.textSecondary,
                                                   fontSize: 11,
@@ -1016,6 +1060,7 @@ class TransactionDetailScreen extends StatelessWidget {
                                             ],
                                           ),
                                         ),
+                                        const SizedBox(width: 8),
                                         Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                           decoration: BoxDecoration(

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:oksigen24medis_mobile2/core/theme/app_theme.dart';
 import 'package:oksigen24medis_mobile2/features/payment/receipt_item.dart';
 import 'package:oksigen24medis_mobile2/core/services/printer_service.dart';
-import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 import 'package:oksigen24medis_mobile2/core/services/pdf_service.dart';
 
 class ReceiptScreen extends StatelessWidget {
@@ -704,103 +703,371 @@ class ReceiptScreen extends StatelessWidget {
 
   void _showPrinterScanDialog(BuildContext context, VoidCallback onConnected) {
     final printer = PrinterService();
+    Future<List<AppPrinterDevice>>? devicesFuture;
+
     showDialog(
       context: context,
       builder: (context) {
         return StatefulBuilder(
-          builder: (context, setState) {
-            return FutureBuilder<List<BluetoothInfo>>(
-              future: printer.getBluetoothDevices(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return AlertDialog(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    title: const Text('Cari Printer Bluetooth'),
-                    content: const Row(
-                      children: [
-                        CircularProgressIndicator(color: AppColors.primary),
-                        SizedBox(width: 16),
-                        Expanded(child: Text('Sedang memindai perangkat...')),
-                      ],
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Batal'),
-                      ),
-                    ],
-                  );
-                }
+          builder: (context, setModalState) {
+            devicesFuture ??= printer.getBluetoothDevices();
 
-                final devices = snapshot.data ?? [];
-                return AlertDialog(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  title: const Text('Pilih Printer Bluetooth'),
-                  content: devices.isEmpty
-                      ? const Text(
-                          'Tidak ada perangkat printer bluetooth yang berpasangan. Hubungkan printer di pengaturan Bluetooth HP Anda terlebih dahulu.',
-                        )
-                      : SizedBox(
-                          width: double.maxFinite,
-                          child: ListView.builder(
-                            shrinkWrap: true,
-                            itemCount: devices.length,
-                            itemBuilder: (context, index) {
-                              final d = devices[index];
-                              return ListTile(
-                                leading: const Icon(
-                                  Icons.print,
-                                  color: AppColors.primary,
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Container(
+                color: Colors.white,
+                padding: const EdgeInsets.all(24),
+                child: FutureBuilder<List<AppPrinterDevice>>(
+                  future: devicesFuture,
+                  builder: (context, snapshot) {
+                    final isLoading = snapshot.connectionState == ConnectionState.waiting;
+                    final devices = snapshot.data ?? [];
+
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Header
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFE6EEFF),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Icon(
+                                    Icons.print_rounded,
+                                    color: Color(0xFF0055FF),
+                                    size: 22,
+                                  ),
                                 ),
-                                title: Text(d.name),
-                                subtitle: Text(d.macAdress),
-                                onTap: () async {
-                                  Navigator.pop(context);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        'Menghubungkan ke ${d.name}...',
-                                      ),
-                                      backgroundColor: AppColors.primary,
+                                const SizedBox(width: 12),
+                                const Text(
+                                  'Printer Bluetooth',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close, color: AppColors.textSecondary),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+
+                        if (isLoading) ...[
+                          const Center(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(vertical: 36.0),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  CircularProgressIndicator(color: Color(0xFF0055FF)),
+                                  SizedBox(height: 20),
+                                  Text(
+                                    'Memindai printer Bluetooth...',
+                                    style: TextStyle(
+                                      color: AppColors.textPrimary,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
                                     ),
-                                  );
-                                  final success = await printer.connect(
-                                    d.macAdress,
-                                  );
-                                  if (context.mounted) {
+                                  ),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    'Mencari printer thermal di sekitar',
+                                    style: TextStyle(
+                                      color: AppColors.textSecondary,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ] else if (devices.isEmpty) ...[
+                          Center(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 20.0),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFFFFF1F2),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.bluetooth_disabled_rounded,
+                                      color: Color(0xFFF43F5E),
+                                      size: 36,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  const Text(
+                                    'Printer Tidak Ditemukan',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  const Padding(
+                                    padding: EdgeInsets.symmetric(horizontal: 16.0),
+                                    child: Text(
+                                      'Pastikan printer thermal (RPP02N / Eppos) sudah dinyalakan dan Bluetooth HP aktif.',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        color: AppColors.textSecondary,
+                                        fontSize: 12,
+                                        height: 1.5,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ] else ...[
+                          const Text(
+                            'Pilih printer untuk cetak struk:',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxHeight: 280),
+                            child: ListView.separated(
+                              shrinkWrap: true,
+                              itemCount: devices.length,
+                              separatorBuilder: (context, index) => const SizedBox(height: 10),
+                              itemBuilder: (context, index) {
+                                final d = devices[index];
+                                final nameLower = d.name.toLowerCase();
+                                final isLikelyPrinter = nameLower.contains('rpp') ||
+                                    nameLower.contains('printer') ||
+                                    nameLower.contains('pos') ||
+                                    nameLower.contains('eppos') ||
+                                    nameLower.contains('mpt') ||
+                                    nameLower.contains('bt');
+
+                                return InkWell(
+                                  onTap: () async {
+                                    Navigator.pop(context);
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
-                                        content: Text(
-                                          success
-                                              ? 'Berhasil terhubung ke ${d.name}'
-                                              : 'Gagal terhubung ke ${d.name}',
-                                        ),
-                                        backgroundColor: success
-                                            ? AppColors.success
-                                            : AppColors.error,
+                                        content: Text('Menghubungkan ke ${d.name}...'),
+                                        backgroundColor: const Color(0xFF0055FF),
                                       ),
                                     );
-                                    if (success) {
-                                      onConnected();
+                                    final success = await printer.connect(d);
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(success
+                                              ? 'Berhasil terhubung ke ${d.name}'
+                                              : 'Gagal terhubung ke ${d.name}'),
+                                          backgroundColor: success
+                                              ? const Color(0xFF00A67E)
+                                              : const Color(0xFFEF4444),
+                                        ),
+                                      );
+                                      if (success) {
+                                        onConnected();
+                                      }
                                     }
-                                  }
-                                },
-                              );
-                            },
+                                  },
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(
+                                        color: isLikelyPrinter
+                                            ? const Color(0xFF86EFAC)
+                                            : const Color(0xFFE2E8F0),
+                                        width: 1.5,
+                                      ),
+                                      boxShadow: const [
+                                        BoxShadow(
+                                          color: Color(0x02000000),
+                                          blurRadius: 6,
+                                          offset: Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(10),
+                                          decoration: BoxDecoration(
+                                            color: isLikelyPrinter
+                                                ? const Color(0xFFDCFCE7)
+                                                : const Color(0xFFE6EEFF),
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: Icon(
+                                            Icons.print_rounded,
+                                            color: isLikelyPrinter
+                                                ? const Color(0xFF15803D)
+                                                : const Color(0xFF0055FF),
+                                            size: 20,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 14),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Expanded(
+                                                    child: Text(
+                                                      d.name.isNotEmpty ? d.name : 'Printer Tanpa Nama',
+                                                      style: const TextStyle(
+                                                        fontWeight: FontWeight.bold,
+                                                        color: AppColors.textPrimary,
+                                                        fontSize: 14,
+                                                      ),
+                                                      maxLines: 1,
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                  ),
+                                                  if (isLikelyPrinter)
+                                                    Container(
+                                                      margin: const EdgeInsets.only(left: 6),
+                                                      padding: const EdgeInsets.symmetric(
+                                                        horizontal: 6,
+                                                        vertical: 2,
+                                                      ),
+                                                      decoration: BoxDecoration(
+                                                        color: const Color(0xFF16A34A),
+                                                        borderRadius: BorderRadius.circular(6),
+                                                      ),
+                                                      child: const Text(
+                                                        'PRINTER',
+                                                        style: TextStyle(
+                                                          fontSize: 9,
+                                                          fontWeight: FontWeight.bold,
+                                                          color: Colors.white,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                d.address,
+                                                style: const TextStyle(
+                                                  color: AppColors.textSecondary,
+                                                  fontSize: 11,
+                                                  fontFamily: 'monospace',
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFE6EEFF),
+                                            borderRadius: BorderRadius.circular(20),
+                                          ),
+                                          child: const Text(
+                                            'Pilih',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                              color: Color(0xFF0055FF),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
                           ),
+                        ],
+
+                        const SizedBox(height: 24),
+
+                        // Actions Row
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(color: Color(0xFFCBD5E1)),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                ),
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text(
+                                  'Batal',
+                                  style: TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF0055FF),
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  elevation: 0,
+                                ),
+                                icon: const Icon(Icons.refresh_rounded, size: 18),
+                                label: const Text(
+                                  'Pindai Ulang',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                onPressed: isLoading
+                                    ? null
+                                    : () {
+                                        setModalState(() {
+                                          devicesFuture = printer.getBluetoothDevices();
+                                        });
+                                      },
+                              ),
+                            ),
+                          ],
                         ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Batal'),
-                    ),
-                  ],
-                );
-              },
+                      ],
+                    );
+                  },
+                ),
+              ),
             );
           },
         );
