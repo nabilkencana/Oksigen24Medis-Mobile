@@ -579,16 +579,45 @@ class _RefillFormScreenState extends State<RefillFormScreen> {
                     final List<Map<String, dynamic>> items = [];
                     final List<ReceiptItem> receiptItems = [];
 
+                    const Map<String, int> tarifPerUnit = {
+                      '0.3m3': 25000,
+                      '0,3m3': 25000,
+                      '0.5m3': 25000,
+                      '0,5m3': 25000,
+                      '1m3': 50000,
+                      '1,0m3': 50000,
+                      '1.5m3': 75000,
+                      '1,5m3': 75000,
+                      '2m3': 75000,
+                      '2,0m3': 75000,
+                      '6m3': 165000,
+                    };
+
+                    int calculatedStandardTotal = 0;
                     _cylinderQty.forEach((size, qty) {
                       if (qty > 0) {
-                        final pricePerUnit = tarif ~/ totalQty;
+                        calculatedStandardTotal += (tarifPerUnit[size] ?? 50000) * qty;
+                      }
+                    });
+
+                    _cylinderQty.forEach((size, qty) {
+                      if (qty > 0) {
+                        int pricePerUnit;
+                        if (tarif == calculatedStandardTotal || calculatedStandardTotal == 0) {
+                          pricePerUnit = tarifPerUnit[size] ?? (tarif ~/ totalQty);
+                        } else {
+                          // Jika kasir mengisi tarif manual khusus (misal diskon/custom)
+                          final standardPrice = tarifPerUnit[size] ?? 50000;
+                          pricePerUnit = (standardPrice * tarif) ~/ calculatedStandardTotal;
+                        }
+
                         // Untuk API customer refill:
                         items.add({
                           'cylinderSize': size,
                           'quantity': qty,
                           'unitPrice': pricePerUnit,
                         });
-                        // Untuk struk: tampilkan per ukuran
+                        // Untuk struk: tampilkan per ukuran (unitPrice satuan, PaymentScreen yang mengalikan dengan quantity)
                         final rcLabel = (size == '6m3' || size.toLowerCase().contains('besar'))
                             ? 'Tabung Oksigen Besar ($size)'
                             : (size == '1.5m3' || size == '2m3' || size == '1,5m3')
@@ -596,7 +625,7 @@ class _RefillFormScreenState extends State<RefillFormScreen> {
                                 : 'Tabung Oksigen Kecil ($size)';
                         receiptItems.add(ReceiptItem(
                           name: 'Refill $rcLabel',
-                          price: pricePerUnit * qty,
+                          price: pricePerUnit,
                           quantity: qty,
                         ));
                       }
@@ -609,6 +638,23 @@ class _RefillFormScreenState extends State<RefillFormScreen> {
                         price: tarif,
                         quantity: 1,
                       ));
+                    } else {
+                      // Verifikasi presisi total agar selalu persis sama dengan tarif yang diinput manual
+                      final int currentSum = receiptItems.fold(0, (sum, i) => sum + (i.price * i.quantity));
+                      final int diff = tarif - currentSum;
+                      if (diff != 0 && receiptItems.isNotEmpty) {
+                        final lastItem = receiptItems.removeLast();
+                        final adjustedPrice = lastItem.price + (diff ~/ lastItem.quantity);
+                        receiptItems.add(ReceiptItem(
+                          name: lastItem.name,
+                          price: adjustedPrice,
+                          quantity: lastItem.quantity,
+                          subtitle: lastItem.subtitle,
+                        ));
+                        if (items.isNotEmpty) {
+                          items.last['unitPrice'] = adjustedPrice;
+                        }
+                      }
                     }
 
                     Navigator.of(context).push(
