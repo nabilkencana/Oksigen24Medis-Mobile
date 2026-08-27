@@ -27,7 +27,7 @@ class _RefillFormScreenState extends State<RefillFormScreen> {
   @override
   void initState() {
     super.initState();
-    _tarifController = TextEditingController(text: '80.000');
+    _tarifController = TextEditingController(text: '0');
     _tarifController.addListener(_onAmountChanged);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -51,17 +51,23 @@ class _RefillFormScreenState extends State<RefillFormScreen> {
   // Recalculates suggested tariff based on cylinder quantities
   void _updateSuggestedPrices() {
     const Map<String, int> tarifPerUnit = {
-      '0.3m3': 30000,
-      '0.5m3': 40000,
+      '0.3m3': 25000,
+      '0,3m3': 25000,
+      '0.5m3': 25000,
+      '0,5m3': 25000,
       '1m3': 50000,
+      '1,0m3': 50000,
       '1.5m3': 75000,
       '1,5m3': 75000,
       '2m3': 75000,
+      '2,0m3': 75000,
       '6m3': 165000,
     };
     int total = 0;
     _cylinderQty.forEach((size, qty) {
-      total += (tarifPerUnit[size] ?? 50000) * qty;
+      if (qty > 0) {
+        total += (tarifPerUnit[size] ?? 50000) * qty;
+      }
     });
     _tarifController.text = _formatCurrency(total);
   }
